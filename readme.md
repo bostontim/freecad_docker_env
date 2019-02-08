@@ -43,3 +43,11 @@ freecad_env
 ```
 FreeCAD
 ```
+
+# Notes
+
+Written using:
+* https://www.freecadweb.org/wiki/CompileOnUnix
+* https://wiki.qt.io/Qt_for_Python/GettingStarted
+* https://dev.opencascade.org/doc/overview/html/occt_dev_guides__building_3rdparty_linux.html
+* https://dev.opencascade.org/doc/overview/html/occt_dev_guides__building_cmake.html
