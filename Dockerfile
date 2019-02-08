@@ -1,5 +1,7 @@
 FROM debian:stable
 
+WORKDIR /root
+
 # Install FreeCAD dependancies
 RUN apt update
 RUN apt install -y build-essential cmake python python-matplotlib libtool \
@@ -14,12 +16,17 @@ RUN apt install -y build-essential cmake python python-matplotlib libtool \
     liboce-modeling-dev liboce-ocaf-dev liboce-ocaf-lite-dev \
     liboce-visualization-dev libmedc-dev libvtk6-dev libproj-dev
 
+# Install IFC Open Shell
+RUN apt install -y wget unzip
+RUN wget https://github.com/IfcOpenShell/IfcOpenShell/releases/download/v0.5.0-preview2/ifcopenshell-python27-master-9ad68db-linux64.zip -O /tmp/tmp_openifc.zip
+RUN unzip /tmp/tmp_openifc.zip -d /tmp
+RUN mv /tmp/ifcopenshell /usr/lib/python2.7/dist-packages
+
 # Add arc GTK theme, and add an alias so that FreeCAD uses it, to make the GUI bearable
 # to look at.
 RUN apt install -y arc-theme
 RUN echo "alias FreeCAD='GTK2_RC_FILES=/usr/share/themes/Arc-Dark/gtk-2.0/gtkrc FreeCAD -style=gtk'" >> ~/.bashrc
 
-WORKDIR /root
 ADD . /root
 
 # Add FreeCAD binary dir to path
