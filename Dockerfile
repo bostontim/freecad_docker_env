@@ -65,8 +65,33 @@ RUN tar -xzf gmsh-4.1.4-source.tgz && rm gmsh-4.1.4-source.tgz
 WORKDIR /tmp/gmsh-4.1.4-source/build
 RUN cmake ..
 RUN make && make install
+WORKDIR /tmp
 
 # Coin 3D v3.1.3
+# Note: I should move this up higher, later
+RUN apt install -y unzip
+RUN wget https://bitbucket.org/Coin3D/coin/get/cbbeac5f7984.zip
+RUN unzip cbbeac5f7984.zip && rm cbbeac5f7984.zip
+WORKDIR /tmp/Coin3D-coin-cbbeac5f7984/build_tmp
+RUN ../configure
+RUN make && make install
+WORKDIR /tmp
+
+# HDF5 v1.8.21
+ENV hdf5_path=/usr/local/hdf5
+RUN wget https://support.hdfgroup.org/ftp/HDF5/releases/hdf5-1.8/hdf5-1.8.21/src/hdf5-1.8.21.tar.gz
+RUN tar -xzf hdf5-1.8.21.tar.gz && rm hdf5-1.8.21.tar.gz  
+WORKDIR /tmp/hdf5-1.8.21/build
+RUN ../configure --prefix=$hdf5_path
+RUN make && make install
+WORKDIR /tmp
+
+# Libmed v3.3.1-4(AKA: MED-fichier/Modelisation and Data Exchange)
+RUN wget https://salsa.debian.org/science-team/med-fichier/-/archive/76832d81fbd8371eeec96d88f6df10bcd9393372/med-fichier-76832d81fbd8371eeec96d88f6df10bcd9393372.tar.gz
+RUN tar -xzf med-fichier-76832d81fbd8371eeec96d88f6df10bcd9393372.tar.gz && rm med-fichier-76832d81fbd8371eeec96d88f6df10bcd9393372.tar.gz
+WORKDIR /tmp/med-fichier-76832d81fbd8371eeec96d88f6df10bcd9393372/build
+RUN ../configure --with-hdf5=$hdf5_path
+RUN make && make install
 
 # RUN apt install -y build-essential cmake python python-matplotlib libtool \
 #     libcoin80-dev libsoqt4-dev libxerces-c-dev libboost-dev libboost-filesystem-dev \
