@@ -6,45 +6,67 @@ WORKDIR /tmp
 
 ### Install FreeCAD dependancies
 RUN apt update
+
 # Build tools
 RUN apt install -y build-essential cmake libtool wget git
+
 # Python 3
 RUN apt install -y python3 python3-dev python3-pip
+
 # QT5, pyside2, and Siboleth2
 RUN apt install -y qt5-default
 RUN pip3 install --index-url=https://download.qt.io/official_releases/QtForPython/ pyside2 \
     --trusted-host download.qt.io
+
 # The used boost libraries
 RUN apt install -y libboost-dev libboost-filesystem-dev libboost-regex-dev \
     libboost-thread-dev libboost-python-dev libboost-signals-dev \
     libboost-program-options-dev
-# Open Cascade
-ENV OCCT_commit="c1197a157530359ec94443c53bcd32a48b3e0b18"
-RUN wget "git.dev.opencascade.org/gitweb/?p=occt.git;a=snapshot;h=$OCCT_commit;sf=tgz" -O occt.tar.gz
-RUN tar -xzf occt.tar.gz
-RUN mv occt-${OCCT_commit:0:7} occt
 
+# Open Cascade v7.2, and it's dependancies
 RUN wget https://download.savannah.gnu.org/releases/freetype/freetype-2.9.1.tar.gz
-RUN tar -xzf freetype-2.9.1.tar.gz
+RUN tar -xzf freetype-2.9.1.tar.gz && rm freetype-2.9.1.tar.gz
 WORKDIR /tmp/freetype-2.9.1
 RUN make && make install
 WORKDIR /tmp
 
-RUN wget https://prdownloads.sourceforge.net/tcl/tcl8.7a1-src.tar.gz
-RUN tar -xzf tcl8.7a1-src.tar.gz
-WORKDIR /tmp/tcl8.7a1/unix
-RUN ./configure --enable-64bit --enable-shared
+### # Note: I couldn't get OCCT's CMake script to recognise these builds' binaries, so
+### # I've just used the offical debian packages instead.
+### # TCL
+### RUN wget https://prdownloads.sourceforge.net/tcl/tcl8.7a1-src.tar.gz
+### RUN tar -xzf tcl8.7a1-src.tar.gz && rm tcl8.7a1-src.tar.gz 
+### WORKDIR /tmp/tcl8.7a1/unix
+### RUN ./configure --enable-64bit --enable-shared --enable-gcc --enable-threads
+### RUN make && make install
+### WORKDIR /tmp
+### 
+### # TK
+### RUN wget https://prdownloads.sourceforge.net/tcl/tk8.7a1-src.tar.gz
+### RUN tar -xzf tk8.7a1-src.tar.gz && rm tk8.7a1-src.tar.gz
+### WORKDIR /tmp/tk8.7a1/unix
+### RUN ./configure --enable-64bit --enable-shared --enable-gcc --enable-threads
+### RUN make && make install
+### WORKDIR /tmp
+
+RUN apt install -y tcllib tklib tcl-dev tk-dev libxt-dev libxmu-dev libxi-dev libgl1-mesa-dev libglu1-mesa-dev libfreeimage-dev libtbb-dev
+
+RUN wget "git.dev.opencascade.org/gitweb/?p=occt.git;a=snapshot;h=42da0d5115bff683c6b596e66cdeaff957f81e7d;sf=tgz" -O occt.tar.gz
+RUN tar -xzf occt.tar.gz && rm occt.tar.gz
+WORKDIR /tmp/occt-42da0d5/build
+RUN cmake ..
 RUN make && make install
 WORKDIR /tmp
 
-RUN wget https://prdownloads.sourceforge.net/tcl/tk8.7a1-src.tar.gz
-RUN tar -xzf tk8.7a1-src.tar.gz
-WORKDIR /tmp/tk8.7a1/unix
-RUN ./configure --enable-64bit --enable-shared
+# Gmsh v4.1.4
+# Note: I should move this higher, later
+RUN apt install -y gfortran
+RUN wget gmsh.info/src/gmsh-4.1.4-source.tgz
+RUN tar -xzf gmsh-4.1.4-source.tgz && rm gmsh-4.1.4-source.tgz
+WORKDIR /tmp/gmsh-4.1.4-source/build
+RUN cmake ..
 RUN make && make install
-WORKDIR /tmp
 
-WORKDIR /tmp/occt/build
+# Coin 3D v3.1.3
 
 # RUN apt install -y build-essential cmake python python-matplotlib libtool \
 #     libcoin80-dev libsoqt4-dev libxerces-c-dev libboost-dev libboost-filesystem-dev \
