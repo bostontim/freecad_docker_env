@@ -27,7 +27,7 @@ RUN apt install -y libboost-dev libboost-filesystem-dev libboost-regex-dev \
 RUN wget https://download.savannah.gnu.org/releases/freetype/freetype-2.9.1.tar.gz
 RUN tar -xzf freetype-2.9.1.tar.gz && rm freetype-2.9.1.tar.gz
 WORKDIR /tmp/freetype-2.9.1
-RUN make -j && make -j install
+RUN make -j $(nproc --ignore=2) && make -j $(nproc --ignore=2) install
 WORKDIR /tmp
 
 ### # Note: I couldn't get OCCT's CMake script to recognise these builds' binaries, so
@@ -54,7 +54,7 @@ RUN wget "git.dev.opencascade.org/gitweb/?p=occt.git;a=snapshot;h=42da0d5115bff6
 RUN tar -xzf occt.tar.gz && rm occt.tar.gz
 WORKDIR /tmp/occt-42da0d5/build
 RUN cmake ..
-RUN make -j && make -j install
+RUN make -j $(nproc --ignore=2) && make -j $(nproc --ignore=2) install
 WORKDIR /tmp
 
 # Gmsh v4.1.4
@@ -62,16 +62,14 @@ RUN wget gmsh.info/src/gmsh-4.1.4-source.tgz
 RUN tar -xzf gmsh-4.1.4-source.tgz && rm gmsh-4.1.4-source.tgz
 WORKDIR /tmp/gmsh-4.1.4-source/build
 RUN cmake ..
-RUN make -j && make -j install
+RUN make -j $(nproc --ignore=2) && make -j $(nproc --ignore=2) install
 WORKDIR /tmp
 
 # Coin 3D v3.1.3
-RUN apt install -y
-# Move this higher later.
 RUN hg clone https://bitbucket.org/Coin3D/coin
 WORKDIR /tmp/coin/build_tmp
 RUN cmake -DCOIN_BUILD_DOCUMENTATION=OFF ..
-RUN make -j && make -j install
+RUN make -j $(nproc --ignore=2) && make -j $(nproc --ignore=2) install
 WORKDIR /tmp
 
 # HDF5 v1.8.21
@@ -80,7 +78,7 @@ RUN wget https://support.hdfgroup.org/ftp/HDF5/releases/hdf5-1.8/hdf5-1.8.21/src
 RUN tar -xzf hdf5-1.8.21.tar.gz && rm hdf5-1.8.21.tar.gz  
 WORKDIR /tmp/hdf5-1.8.21/build
 RUN ../configure --prefix=$hdf5_path
-RUN make -j && make -j install
+RUN make -j $(nproc --ignore=2) && make -j $(nproc --ignore=2) install
 WORKDIR /tmp
 
 # Libmed v3.0.6-11 (AKA: MED-fichier/Modelisation and Data Exchange)
@@ -88,35 +86,32 @@ RUN wget https://salsa.debian.org/science-team/med-fichier/-/archive/debian/3.0.
 RUN tar -xzf med-fichier-debian-3.0.6-11.tar.gz && rm med-fichier-debian-3.0.6-11.tar.gz 
 WORKDIR /tmp/med-fichier-debian-3.0.6-11/build
 RUN ../configure --with-hdf5=$hdf5_path
-RUN make -j && make -j install
+RUN make -j $(nproc --ignore=2) && make -j $(nproc --ignore=2) install
 WORKDIR /tmp
 
 # Swig v3.0.12
 RUN apt install -y libpcre3-dev
-# Move this higher later
 RUN wget https://github.com/swig/swig/archive/rel-3.0.12.tar.gz
 RUN tar -xzf rel-3.0.12.tar.gz && rm rel-3.0.12.tar.gz
 WORKDIR /tmp/swig-rel-3.0.12
 RUN ./autogen.sh
 RUN ./configure
-RUN make -j && make -j install
+RUN make -j $(nproc --ignore=2) && make -j $(nproc --ignore=2) install
 WORKDIR /tmp
 
 # SOQT v1.5.0
-RUN wget https://bitbucket.org/Coin3D/soqt/get/08958520df8f.zip
-# RUN tar -xzf default.tar.gz && rm default.tar.gz
-# WORKDIR /tmp/Coin3D-soqt-1a381ca22d93/build
-# RUN ../configure
-# RUN make -j && make -j install
-# RUN /tmp
+RUN hg clone https://bitbucket.org/Coin3D/soqt
+WORKDIR /tmp/soqt/build_tmp
+RUN cmake -DSOQT_BUILD_DOCUMENTATION=OFF ..
+RUN make -j $(nproc --ignore=2) && make -j $(nproc --ignore=2) install
+WORKDIR /tmp
 
-# # Pivy v0.6.4
-# RUN wget https://bitbucket.org/Coin3D/pivy/get/0.6.4.tar.gz
-# RUN tar -xzf 0.6.4.tar.gz && rm 0.6.4.tar.gz  
-# WORKDIR /tmp/Coin3D-pivy-a84100beff22
-# RUN python3 setup.py build
-# RUN python3 setup.py install
-# 
+# Pivy v0.6.4
+RUN hg clone https://bitbucket.org/Coin3D/pivy
+WORKDIR /tmp/pivy
+RUN python3 setup.py build
+RUN python3 setup.py install
+
 # # Netgen v6.2.1901
 # RUN apt install -y libblas-dev liblapack-dev
 # RUN git clone -n https://github.com/NGSolve/ngsolve.git
