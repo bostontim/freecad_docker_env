@@ -4,19 +4,48 @@ SHELL ["/bin/bash", "-c"]
 
 WORKDIR /tmp
 
-### Install FreeCAD dependancies
 RUN apt update
 
-# Build tools
-RUN apt install -y build-essential gfortran cmake automake bison libtool wget git mercurial unzip
+# Build tools, and misc supporting tools
+RUN apt install -y build-essential gfortran cmake automake bison libtool \
+    wget git mercurial unzip
+
+# Infrequently used languages
+RUN apt install -y perl ruby
 
 # Python 3
 RUN apt install -y python3 python3-dev python3-pip
 
-# QT5, pyside2, and Siboleth2
-RUN apt install -y qt5-default
-RUN pip3 install --index-url=https://download.qt.io/official_releases/QtForPython/ pyside2 \
-    --trusted-host download.qt.io
+# Libxcb
+RUN apt install -y '^libxcb.*-dev' libx11-xcb-dev libglu1-mesa-dev \
+    libxrender-dev libxi-dev libxcb-xinerama0-dev
+
+# QT5's accessability dependancies 
+RUN apt install -y libatspi2.0-dev libdbus-1-dev
+
+# QT5's webkit dependancies
+RUN apt install -y flex gperf libicu-dev libxslt-dev ruby bison
+
+# QT5's multimedia dependancies
+RUN apt install -y libasound2-dev libgstreamer1.0-dev \
+    libgstreamer-plugins-base1.0-dev
+
+# QT5 v5.12
+RUN git clone -n git://code.qt.io/qt/qt5.git
+WORKDIR /tmp/qt5
+RUN git checkout 5.12
+RUN perl init-repository --module-subset=default,-qtwebengine,-qtpurchasing,\
+-qtsensors,-qtgamepad,-qtdoc,-qtfeedback,-qtandroidextras
+RUN ./configure -opensource -confirm-license -nomake examples -nomake tests
+RUN make -j $(nproc --ignore=2)
+RUN make -j $(nproc --ignore=2) install
+WORKDIR /tmp
+# I should simlink a new QT5 dir and use that for the CMAKE_PREFIX_PATH
+# variable when building SOQT, to make it easier to move to new versions.
+
+# Pyside2 and shiboken2 v2-5.12.1
+RUN apt install -y libclang-dev
+RUN pip3 install --index-url=https://download.qt.io/official_releases/QtForPython/ pyside2 --trusted-host download.qt.io
 
 # The used boost libraries
 RUN apt install -y libboost-dev libboost-filesystem-dev libboost-regex-dev \
@@ -102,15 +131,16 @@ WORKDIR /tmp
 # SOQT v1.5.0
 RUN hg clone https://bitbucket.org/Coin3D/soqt
 WORKDIR /tmp/soqt/build_tmp
-RUN cmake -DSOQT_BUILD_DOCUMENTATION=OFF ..
+RUN cmake -DCMAKE_PREFIX_PATH=/usr/local/Qt-5.12.2 -DSOQT_BUILD_DOCUMENTATION=OFF ..
 RUN make -j $(nproc --ignore=2) && make -j $(nproc --ignore=2) install
 WORKDIR /tmp
 
 # Pivy v0.6.4
 RUN hg clone https://bitbucket.org/Coin3D/pivy
 WORKDIR /tmp/pivy
-RUN python3 setup.py build
-RUN python3 setup.py install
+RUN hg checkout 0.6.4
+# RUN python3 setup.py build
+# RUN python3 setup.py install
 
 # # Netgen v6.2.1901
 # RUN apt install -y libblas-dev liblapack-dev
