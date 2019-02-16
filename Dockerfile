@@ -15,6 +15,7 @@ RUN apt install -y perl ruby
 
 # Python 3
 RUN apt install -y python3 python3-dev python3-pip
+# May need to update to version 3.7, as is currently 3.6
 
 # Libxcb
 RUN apt install -y '^libxcb.*-dev' libx11-xcb-dev libglu1-mesa-dev \
@@ -120,10 +121,9 @@ WORKDIR /tmp
 
 # Swig v3.0.12
 RUN apt install -y libpcre3-dev
-RUN wget https://github.com/swig/swig/archive/rel-3.0.12.tar.gz
-RUN tar -xzf rel-3.0.12.tar.gz && rm rel-3.0.12.tar.gz
-WORKDIR /tmp/swig-rel-3.0.12
-RUN ./autogen.sh
+RUN wget https://astuteinternet.dl.sourceforge.net/project/swig/swig/swig-3.0.12/swig-3.0.12.tar.gz
+RUN tar -xzf swig-3.0.12.tar.gz && rm swig-3.0.12.tar.gz
+WORKDIR /tmp/swig-3.0.12
 RUN ./configure
 RUN make -j $(nproc --ignore=2) && make -j $(nproc --ignore=2) install
 WORKDIR /tmp
@@ -136,9 +136,25 @@ RUN make -j $(nproc --ignore=2) && make -j $(nproc --ignore=2) install
 WORKDIR /tmp
 
 # Pivy v0.6.4
+RUN apt install -y gcc-multilib g++-multilib
 RUN hg clone https://bitbucket.org/Coin3D/pivy
 WORKDIR /tmp/pivy
 RUN hg checkout 0.6.4
+ENV CMAKE_PREFIX_PATH=/usr/local/Qt-5.12.2
+RUN rm setup.py
+ADD add_files/setup.py setup.py
+# RUN python3 setup.py build
+
+# Try adding the following to SWIG_PARAMS: -I/usr/include/c++/6 -I/usr/include/x86_64-linux-gnu/c++/6/ -I/usr/include -I/usr/include/x86_64-linux-gnu/
+
+# Try this: https://stackoverflow.com/questions/8111754/how-to-pass-flags-to-a-distutils-extension
+
+# It appears one of the issues is that pivy thinks SOQT's include dir is in /usr/local/include/usr/include, which doesn't exist 
+# Update: It appears CMAKE is shortening "/usr/local/include;/usr/include" to "/usr/local/include/usr/include" 
+
+# I think the solution is to add the following to swig calls: -I/usr/include/c++/6 -I/usr/include/x86_64-linux-gnu/c++/6/ -I/usr/include -I/usr/include/x86_64-linux-gnu/
+# swig -w302,306,307,312,314,325,361,362,467,389,503,509,510 -py3 -c++ -python -includeall -modern -D__PIVY__ -I. -Ifake_headers -I"/usr/local/include" -I"/usr/include/c++/6" -I"/usr/include/x86_64-linux-gnu/c++/6/" -I"/usr/include" -I"/usr/include/x86_64-linux-gnu/" -Iinterfaces  -o pivy/coin_wrap.cpp interfaces/coin.i
+
 # RUN python3 setup.py build
 # RUN python3 setup.py install
 
