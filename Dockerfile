@@ -7,15 +7,30 @@ WORKDIR /tmp
 RUN apt update
 
 # Build tools, and misc supporting tools
-RUN apt install -y build-essential gfortran cmake automake bison libtool \
-    wget git mercurial unzip
+RUN apt install -y build-essential gfortran automake bison libtool 
+RUN apt install -y git mercurial wget unzip
 
+# CMake v3.14.0
+RUN git clone -n https://gitlab.kitware.com/cmake/cmake.git
+WORKDIR /tmp/cmake/build
+RUN git checkout v3.14.0-rc2
+RUN ../bootstrap --parallel=$(nproc --ignore=2)
+RUN make -j $(nproc --ignore=2)
+RUN make install -j $(nproc --ignore=2)
+WORKDIR /tmp
+
+# Python v3.7.2
+RUN apt install -y zlib1g-dev libffi-dev libssl-dev 
+RUN wget https://www.python.org/ftp/python/3.7.2/Python-3.7.2.tar.xz 
+RUN tar -xf Python-3.7.2.tar.xz && rm Python-3.7.2.tar.xz 
+WORKDIR /tmp/Python-3.7.2/build
+RUN ../configure
+RUN make -j $(nproc --ignore=2)
+RUN make install -j $(nproc --ignore=2)
+WORKDIR /tmp
+ 
 # Infrequently used languages
 RUN apt install -y perl ruby
-
-# Python 3
-RUN apt install -y python3 python3-dev python3-pip
-# May need to update to version 3.7, as is currently 3.6
 
 # Libxcb
 RUN apt install -y '^libxcb.*-dev' libx11-xcb-dev libglu1-mesa-dev \
@@ -40,9 +55,8 @@ RUN perl init-repository --module-subset=default,-qtwebengine,-qtpurchasing,\
 RUN ./configure -opensource -confirm-license -nomake examples -nomake tests
 RUN make -j $(nproc --ignore=2)
 RUN make -j $(nproc --ignore=2) install
+RUN ln -s /usr/local/Qt-5.12.2 /usr/local/Qt-5
 WORKDIR /tmp
-# I should simlink a new QT5 dir and use that for the CMAKE_PREFIX_PATH
-# variable when building SOQT, to make it easier to move to new versions.
 
 # Pyside2 and shiboken2 v2-5.12.1
 RUN apt install -y libclang-dev
@@ -53,34 +67,34 @@ RUN apt install -y libboost-dev libboost-filesystem-dev libboost-regex-dev \
     libboost-thread-dev libboost-python-dev libboost-signals-dev \
     libboost-program-options-dev
 
-# Open Cascade v7.2, and it's dependancies
+# Freetype v 2.9.1
 RUN wget https://download.savannah.gnu.org/releases/freetype/freetype-2.9.1.tar.gz
 RUN tar -xzf freetype-2.9.1.tar.gz && rm freetype-2.9.1.tar.gz
 WORKDIR /tmp/freetype-2.9.1
 RUN make -j $(nproc --ignore=2) && make -j $(nproc --ignore=2) install
 WORKDIR /tmp
 
-### # Note: I couldn't get OCCT's CMake script to recognise these builds' binaries, so
-### # I've just used the offical debian packages instead.
-### # TCL
-### RUN wget https://prdownloads.sourceforge.net/tcl/tcl8.7a1-src.tar.gz
-### RUN tar -xzf tcl8.7a1-src.tar.gz && rm tcl8.7a1-src.tar.gz 
-### WORKDIR /tmp/tcl8.7a1/unix
-### RUN ./configure --enable-64bit --enable-shared --enable-gcc --enable-threads
-### RUN make && make install
-### WORKDIR /tmp
-### 
-### # TK
-### RUN wget https://prdownloads.sourceforge.net/tcl/tk8.7a1-src.tar.gz
-### RUN tar -xzf tk8.7a1-src.tar.gz && rm tk8.7a1-src.tar.gz
-### WORKDIR /tmp/tk8.7a1/unix
-### RUN ./configure --enable-64bit --enable-shared --enable-gcc --enable-threads
-### RUN make && make install
-### WORKDIR /tmp
+# TCL v8.7
+RUN wget https://prdownloads.sourceforge.net/tcl/tcl8.7a1-src.tar.gz
+RUN tar -xzf tcl8.7a1-src.tar.gz && rm tcl8.7a1-src.tar.gz 
+WORKDIR /tmp/tcl8.7a1/unix
+RUN ./configure --enable-64bit --enable-shared --enable-gcc --enable-threads
+RUN make && make install
+WORKDIR /tmp
 
-RUN apt install -y tcllib tklib tcl-dev tk-dev libxt-dev libxmu-dev libxi-dev libgl1-mesa-dev libglu1-mesa-dev libfreeimage-dev libtbb-dev
+# TK v8.7
+RUN wget https://prdownloads.sourceforge.net/tcl/tk8.7a1-src.tar.gz
+RUN tar -xzf tk8.7a1-src.tar.gz && rm tk8.7a1-src.tar.gz
+WORKDIR /tmp/tk8.7a1/unix
+RUN ./configure --enable-64bit --enable-shared --enable-gcc --enable-threads
+RUN make && make install
+WORKDIR /tmp
 
+# Open Cascade v7.2
+RUN apt install -y libxt-dev libxmu-dev libxi-dev libgl1-mesa-dev libglu1-mesa-dev libfreeimage-dev libtbb-dev
+# RUN apt install -y tcllib tklib tcl-dev tk-dev libxt-dev libxmu-dev libxi-dev libgl1-mesa-dev libglu1-mesa-dev libfreeimage-dev libtbb-dev
 RUN wget "git.dev.opencascade.org/gitweb/?p=occt.git;a=snapshot;h=42da0d5115bff683c6b596e66cdeaff957f81e7d;sf=tgz" -O occt.tar.gz
+# I should probabably have this as a more conventional git clone and checkout.
 RUN tar -xzf occt.tar.gz && rm occt.tar.gz
 WORKDIR /tmp/occt-42da0d5/build
 RUN cmake ..
@@ -131,7 +145,7 @@ WORKDIR /tmp
 # SOQT v1.5.0
 RUN hg clone https://bitbucket.org/Coin3D/soqt
 WORKDIR /tmp/soqt/build_tmp
-RUN cmake -DCMAKE_PREFIX_PATH=/usr/local/Qt-5.12.2 -DSOQT_BUILD_DOCUMENTATION=OFF ..
+RUN cmake -DCMAKE_PREFIX_PATH=/usr/local/Qt-5 -DSOQT_BUILD_DOCUMENTATION=OFF ..
 RUN make -j $(nproc --ignore=2) && make -j $(nproc --ignore=2) install
 WORKDIR /tmp
 
@@ -140,63 +154,70 @@ RUN apt install -y gcc-multilib g++-multilib
 RUN hg clone https://bitbucket.org/Coin3D/pivy
 WORKDIR /tmp/pivy
 RUN hg checkout 0.6.4
-ENV CMAKE_PREFIX_PATH=/usr/local/Qt-5.12.2
+ENV CMAKE_PREFIX_PATH=/usr/local/Qt-5
 RUN rm setup.py
 ADD add_files/setup.py setup.py
-# RUN python3 setup.py build
+#RUN python3 setup.py build
+#RUN python3 setup.py install
+# There are three issues I ran into with the Pivy setup.py script while I was
+# creating this Dockerfile. I am documenting the issues here, so I can resolve
+# them in a less hacky way, later.
+# 1) SWIG -I flags
+#    SWIG needs to be given the following additional flags:
+#    -I/usr/include/boost/compatibility/cpp_c_headers
+#    -I/usr/include/x86_64-linux-gnu/c++/6/ 
+#    -I/usr/include/c++/6
+# 2) Finding qmake
+#    The script cannot find the qmake binary, so when running:
+#    `qtinfo.QtInfo()`, add this argument:
+#    `qtinfo.QtInfo(qmake_command=['/usr/local/Qt-5.12.2/bin/qmake'])`
+# 3) CMake misreporting SoQt include dirs
+#    For some reason, CMake reports the SOQT_INCLUDE_DIR as
+#    `/usr/local/include/usr/include`, instead of
+#    `/usr/local/include;/usr/include`. I'm not entirely sure why. To work
+#    around that, overwrite the stored value like this:
+#    `config_dict["SOQT_INCLUDE_DIR"] = "/usr/local/include"`
+WORKDIR /tmp
 
-# Try adding the following to SWIG_PARAMS: -I/usr/include/c++/6 -I/usr/include/x86_64-linux-gnu/c++/6/ -I/usr/include -I/usr/include/x86_64-linux-gnu/
-
-# Try this: https://stackoverflow.com/questions/8111754/how-to-pass-flags-to-a-distutils-extension
-
-# It appears one of the issues is that pivy thinks SOQT's include dir is in /usr/local/include/usr/include, which doesn't exist 
-# Update: It appears CMAKE is shortening "/usr/local/include;/usr/include" to "/usr/local/include/usr/include" 
-
-# I think the solution is to add the following to swig calls: -I/usr/include/c++/6 -I/usr/include/x86_64-linux-gnu/c++/6/ -I/usr/include -I/usr/include/x86_64-linux-gnu/
-# swig -w302,306,307,312,314,325,361,362,467,389,503,509,510 -py3 -c++ -python -includeall -modern -D__PIVY__ -I. -Ifake_headers -I"/usr/local/include" -I"/usr/include/c++/6" -I"/usr/include/x86_64-linux-gnu/c++/6/" -I"/usr/include" -I"/usr/include/x86_64-linux-gnu/" -Iinterfaces  -o pivy/coin_wrap.cpp interfaces/coin.i
-
-# RUN python3 setup.py build
-# RUN python3 setup.py install
-
-# # Netgen v6.2.1901
-# RUN apt install -y libblas-dev liblapack-dev
-# RUN git clone -n https://github.com/NGSolve/ngsolve.git
-# WORKDIR /tmp/ngsolve
-# RUN git checkout a31a905cac14b0c14c535b8063e2fd16941c4335
-# RUN git submodule update --init --recursive
-# WORKDIR /tmp/ngsolve/build
-# RUN cmake ..
-# RUN make; exit 0
-# RUN make install
-# # Leaving this for now, because I can't tell what's broken, but this is likely broken.
-# WORKDIR /tmp
-
-# RUN apt install -y build-essential cmake python python-matplotlib libtool \
-#     libcoin80-dev libsoqt4-dev libxerces-c-dev libboost-dev libboost-filesystem-dev \
-#     libboost-regex-dev libboost-program-options-dev libboost-signals-dev \
-#     libboost-thread-dev libboost-python-dev libqt4-dev libqt4-opengl-dev \
-#     qt4-dev-tools python-dev python-pyside pyside-tools libeigen3-dev \
-#     libqtwebkit-dev libshiboken-dev libpyside-dev libode-dev swig libzipios++-dev \
-#     libfreetype6-dev liboce-foundation-dev liboce-modeling-dev liboce-ocaf-dev \
-#     liboce-visualization-dev liboce-ocaf-lite-dev libsimage-dev checkinstall \
-#     python-pivy python-qt4 doxygen libspnav-dev oce-draw liboce-foundation-dev \
-#     liboce-modeling-dev liboce-ocaf-dev liboce-ocaf-lite-dev \
-#     liboce-visualization-dev libmedc-dev libvtk6-dev libproj-dev
-# 
-# Install IFC Open Shell
-# RUN apt install -y wget unzip
-# RUN wget https://github.com/IfcOpenShell/IfcOpenShell/releases/download/v0.5.0-preview2/ifcopenshell-python27-master-9ad68db-linux64.zip -O /tmp/tmp_openifc.zip
-# RUN unzip /tmp/tmp_openifc.zip -d /tmp
-# RUN mv /tmp/ifcopenshell /usr/lib/python2.7/dist-packages
-# 
-# # Add arc GTK theme, and add an alias so that FreeCAD uses it, to make the GUI bearable
-# # to look at.
-# RUN apt install -y arc-theme
-# RUN echo "alias FreeCAD='GTK2_RC_FILES=/usr/share/themes/Arc-Dark/gtk-2.0/gtkrc FreeCAD -style=gtk'" >> ~/.bashrc
-# 
-# ADD . /root
-# 
-# # Add FreeCAD binary dir to path
-# RUN echo "PATH=$PATH:/mnt/build/bin" >> ~/.bashrc
-# 
-# CMD /bin/bash
+# # # Netgen v6.2.1901
+# # RUN apt install -y libblas-dev liblapack-dev
+# # RUN git clone -n https://github.com/NGSolve/ngsolve.git
+# # WORKDIR /tmp/ngsolve
+# # RUN git checkout v6.2.1901
+# # RUN git submodule update --init --recursive
+# # WORKDIR /tmp/ngsolve/build
+# # RUN cmake ..
+# # RUN make -j $(nproc --ignore=2); exit 0
+# # RUN make install -j $(nproc --ignore=2); exit 0
+# # # I need to update to CMAKE version 3.14, then I can remove the ; exit 0
+# # WORKDIR /tmp
+# # 
+# # # RUN apt install -y build-essential cmake python python-matplotlib libtool \
+# # #     libcoin80-dev libsoqt4-dev libxerces-c-dev libboost-dev libboost-filesystem-dev \
+# # #     libboost-regex-dev libboost-program-options-dev libboost-signals-dev \
+# # #     libboost-thread-dev libboost-python-dev libqt4-dev libqt4-opengl-dev \
+# # #     qt4-dev-tools python-dev python-pyside pyside-tools libeigen3-dev \
+# # #     libqtwebkit-dev libshiboken-dev libpyside-dev libode-dev swig libzipios++-dev \
+# # #     libfreetype6-dev liboce-foundation-dev liboce-modeling-dev liboce-ocaf-dev \
+# # #     liboce-visualization-dev liboce-ocaf-lite-dev libsimage-dev checkinstall \
+# # #     python-pivy python-qt4 doxygen libspnav-dev oce-draw liboce-foundation-dev \
+# # #     liboce-modeling-dev liboce-ocaf-dev liboce-ocaf-lite-dev \
+# # #     liboce-visualization-dev libmedc-dev libvtk6-dev libproj-dev
+# # # 
+# # # Install IFC Open Shell
+# # # RUN apt install -y wget unzip
+# # # RUN wget https://github.com/IfcOpenShell/IfcOpenShell/releases/download/v0.5.0-preview2/ifcopenshell-python27-master-9ad68db-linux64.zip -O /tmp/tmp_openifc.zip
+# # # RUN unzip /tmp/tmp_openifc.zip -d /tmp
+# # # RUN mv /tmp/ifcopenshell /usr/lib/python2.7/dist-packages
+# # # 
+# # # # Add arc GTK theme, and add an alias so that FreeCAD uses it, to make the GUI bearable
+# # # # to look at.
+# # # RUN apt install -y arc-theme
+# # # RUN echo "alias FreeCAD='GTK2_RC_FILES=/usr/share/themes/Arc-Dark/gtk-2.0/gtkrc FreeCAD -style=gtk'" >> ~/.bashrc
+# # # 
+# # # ADD . /root
+# # # 
+# # # # Add FreeCAD binary dir to path
+# # # RUN echo "PATH=$PATH:/mnt/build/bin" >> ~/.bashrc
+# # # 
+# # # CMD /bin/bash

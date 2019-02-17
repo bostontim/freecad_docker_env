@@ -146,7 +146,7 @@ class pivy_build(build):
     ##### Added an extra set of flags for swig here:
     SWIG_PARAMS = "-c++ -python -includeall -modern -D__PIVY__ " + \
                   "-I/usr/include/boost/compatibility/cpp_c_headers " + \
-                  "-I/usr/include/x86_64-linux-gnu/c++/6/ -I/usr/include " + \
+                  "-I/usr/include/x86_64-linux-gnu/c++/6/ -I/usr/include/c++/6" + \
                   "-I/usr/include/x86_64-linux-gnu/ " + \
                   "-I. -Ifake_headers -I\"%s\" %s -o %s_wrap.cpp " + \
                   "interfaces" + os.sep + "%s.i"
@@ -469,21 +469,21 @@ class pivy_build(build):
         self.check_with_cmake()
 
         # TODO: find a way to enable coin-features
-        # self.get_coin_features()
+        self.get_coin_features()
         # if self.SOGUI:
         #     self.check_gui_bindings()
 
-        # if 'simvoleon' in self.MODULES and self.check_simvoleon_version():
-        #     if sys.platform == "win32":
-        #         INCLUDE_DIR = os.getenv("SIMVOLEONDIR") + "\\include"
-        #     else:
-        #         INCLUDE_DIR = self.do_os_popen("simvoleon-config --includedir")
+        if 'simvoleon' in self.MODULES and self.check_simvoleon_version():
+            if sys.platform == "win32":
+                INCLUDE_DIR = os.getenv("SIMVOLEONDIR") + "\\include"
+            else:
+                INCLUDE_DIR = self.do_os_popen("simvoleon-config --includedir")
 
-        #     sys.stdout.write(blue("Preparing") + green(" VolumeViz ") + blue("headers:"))
-        #     dir_gen = os.walk("VolumeViz", INCLUDE_DIR)
-        #     for _dir, _, names in dir_gen:
-        #         self.copy_and_swigify_headers(INCLUDE_DIR, _dir, names)
-        #     print(green("."))
+            sys.stdout.write(blue("Preparing") + green(" VolumeViz ") + blue("headers:"))
+            dir_gen = os.walk("VolumeViz", INCLUDE_DIR)
+            for _dir, _, names in dir_gen:
+                self.copy_and_swigify_headers(INCLUDE_DIR, _dir, names)
+            print(green("."))
 
         # if sys.platform == "win32":
         #     INCLUDE_DIR = os.path.join(os.getenv("COINDIR"), "include")
