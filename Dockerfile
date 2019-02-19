@@ -6,20 +6,9 @@ WORKDIR /tmp
 
 RUN apt update
 
-# Build tools, and misc supporting tools
+# # Build tools, and misc supporting tools
 RUN apt install -y build-essential gfortran automake bison libtool 
 RUN apt install -y git mercurial wget unzip
-
-# CMake v3.14.0
-RUN git clone -n https://gitlab.kitware.com/cmake/cmake.git
-WORKDIR /tmp/cmake/build
-RUN git checkout v3.14.0-rc2
-# Revert to an earlier version to see if the list concatenating issue
-# encountered with Pivy remains.
-RUN ../bootstrap --parallel=$(nproc --ignore=2)
-RUN make -j $(nproc --ignore=2)
-RUN make install -j $(nproc --ignore=2)
-WORKDIR /tmp
 
 # Python v3.7.2
 RUN apt install -y zlib1g-dev libffi-dev libssl-dev 
@@ -30,8 +19,36 @@ RUN ../configure
 RUN make -j $(nproc --ignore=2)
 RUN make install -j $(nproc --ignore=2)
 WORKDIR /tmp
-# Determine where the other versions of python are being installed.
- 
+
+# CMake v3.13.4
+RUN git clone -n https://gitlab.kitware.com/cmake/cmake.git
+WORKDIR /tmp/cmake/build
+RUN git checkout v3.13.4
+# I may want to revert to an earlier version to see if the list concatenating
+# issue encountered with Pivy remains.
+RUN ../bootstrap --parallel=$(nproc --ignore=2)
+RUN make -j $(nproc --ignore=2)
+RUN make install -j $(nproc --ignore=2)
+WORKDIR /tmp
+
+# Boost v1.67.0
+RUN wget https://dl.bintray.com/boostorg/release/1.67.0/source/boost_1_67_0.tar.gz
+RUN tar -xzf boost_1_67_0.tar.gz && rm boost_1_67_0.tar.gz
+WORKDIR /tmp/boost_1_67_0
+RUN ./bootstrap.sh --with-python=/usr/local/bin/python3.7 \
+    --with-python-root=/usr/local/include/python3.7m
+RUN ./b2 -j$(nproc --ignore=2); exit 0
+# Boost keeps using Python 2.7 for certain parts, which causes it to fail when
+# it can't find pyconfig.h. This may result in all the boost-python stuff
+# failing.
+WORKDIR /tmp
+
+# # The used boost libraries
+# RUN apt install -y libboost-dev libboost-filesystem-dev libboost-regex-dev \
+#     libboost-thread-dev libboost-python-dev libboost-signals-dev \
+#     libboost-program-options-dev
+# # Build boost-python yourself to use python3.7
+
 # Infrequently used languages
 RUN apt install -y perl ruby
 
@@ -64,12 +81,6 @@ WORKDIR /tmp
 # Pyside2 and shiboken2 v2-5.12.1
 RUN apt install -y libclang-dev
 RUN pip3 install --index-url=https://download.qt.io/official_releases/QtForPython/ pyside2 --trusted-host download.qt.io
-
-# The used boost libraries
-RUN apt install -y libboost-dev libboost-filesystem-dev libboost-regex-dev \
-    libboost-thread-dev libboost-python-dev libboost-signals-dev \
-    libboost-program-options-dev
-# Build boost-python yourself to use python3.7
 
 # Freetype v 2.9.1
 RUN wget https://download.savannah.gnu.org/releases/freetype/freetype-2.9.1.tar.gz
@@ -235,6 +246,9 @@ RUN cmake ..
 RUN make -j $(nproc --ignore=2)
 RUN make -j $(nproc --ignore=2) install
 WORKDIR /tmp
+
+# Remove temporary source directories
+RUN rm -rf /tmp/*
 
 # RUN apt install -y build-essential cmake python python-matplotlib libtool \
 #     libcoin80-dev libsoqt4-dev libxerces-c-dev libboost-dev libboost-filesystem-dev \
