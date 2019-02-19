@@ -14,6 +14,8 @@ RUN apt install -y git mercurial wget unzip
 RUN git clone -n https://gitlab.kitware.com/cmake/cmake.git
 WORKDIR /tmp/cmake/build
 RUN git checkout v3.14.0-rc2
+# Revert to an earlier version to see if the list concatenating issue
+# encountered with Pivy remains.
 RUN ../bootstrap --parallel=$(nproc --ignore=2)
 RUN make -j $(nproc --ignore=2)
 RUN make install -j $(nproc --ignore=2)
@@ -28,6 +30,7 @@ RUN ../configure
 RUN make -j $(nproc --ignore=2)
 RUN make install -j $(nproc --ignore=2)
 WORKDIR /tmp
+# Determine where the other versions of python are being installed.
  
 # Infrequently used languages
 RUN apt install -y perl ruby
@@ -66,6 +69,7 @@ RUN pip3 install --index-url=https://download.qt.io/official_releases/QtForPytho
 RUN apt install -y libboost-dev libboost-filesystem-dev libboost-regex-dev \
     libboost-thread-dev libboost-python-dev libboost-signals-dev \
     libboost-program-options-dev
+# Build boost-python yourself to use python3.7
 
 # Freetype v 2.9.1
 RUN wget https://download.savannah.gnu.org/releases/freetype/freetype-2.9.1.tar.gz
@@ -92,7 +96,6 @@ WORKDIR /tmp
 
 # Open Cascade v7.2
 RUN apt install -y libxt-dev libxmu-dev libxi-dev libgl1-mesa-dev libglu1-mesa-dev libfreeimage-dev libtbb-dev
-# RUN apt install -y tcllib tklib tcl-dev tk-dev libxt-dev libxmu-dev libxi-dev libgl1-mesa-dev libglu1-mesa-dev libfreeimage-dev libtbb-dev
 RUN wget "git.dev.opencascade.org/gitweb/?p=occt.git;a=snapshot;h=42da0d5115bff683c6b596e66cdeaff957f81e7d;sf=tgz" -O occt.tar.gz
 # I should probabably have this as a more conventional git clone and checkout.
 RUN tar -xzf occt.tar.gz && rm occt.tar.gz
@@ -156,10 +159,11 @@ WORKDIR /tmp/pivy
 RUN hg checkout 0.6.4
 ENV CMAKE_PREFIX_PATH=/usr/local/Qt-5
 RUN rm setup.py
-ADD add_files/setup.py setup.py
-#RUN python3 setup.py build
-#RUN python3 setup.py install
-# There are three issues I ran into with the Pivy setup.py script while I was
+ADD add_files/pivy_setup.py setup.py
+RUN CFLAGS="-fpermissive" python3 setup.py build
+RUN python3 setup.py install
+WORKDIR /tmp
+# There are four issues I ran into with the Pivy setup.py script while I was
 # creating this Dockerfile. I am documenting the issues here, so I can resolve
 # them in a less hacky way, later.
 # 1) SWIG -I flags
@@ -177,47 +181,87 @@ ADD add_files/setup.py setup.py
 #    `/usr/local/include;/usr/include`. I'm not entirely sure why. To work
 #    around that, overwrite the stored value like this:
 #    `config_dict["SOQT_INCLUDE_DIR"] = "/usr/local/include"`
+# 4) -fpermissive flag
+#    I ran into the following issue when the swig-generated file coin_wrap.cpp
+#    got compiled. This forced me to add the -fpermissive flag to the
+#    compilation. While I'm not an expert, it is my understanding this is
+#    unsafe:
+#    pivy/coin_wrap.cpp: In function ‘void SoSensorPythonCB(void*, SoSensor*)’:
+#    pivy/coin_wrap.cpp:6342:40: warning: invalid conversion from ‘const char*’ to ‘char*’ [-fpermissive]
+#         sensor_cast_name = PyUnicode_AsUTF8(item);
+#                            ~~~~~~~~~~~~~~~~^~~~~~
+#    pivy/coin_wrap.cpp: In function ‘void SoMarkerSet_addMarker__SWIG_3(int, const SbVec2s&, PyObject*, SbBool, SbBool)’:
+#    pivy/coin_wrap.cpp:7236:43: warning: invalid conversion from ‘const char*’ to ‘char*’ [-fpermissive]
+#                 coin_marker = PyUnicode_AsUTF8(string);
+#                               ~~~~~~~~~~~~~~~~^~~~~~~~
+
+# simage v1.7.0+
+RUN hg clone https://bitbucket.org/Coin3D/simage
+WORKDIR /tmp/simage
+RUN hg checkout 2a7542b
+WORKDIR /tmp/simage/build
+RUN ../configure
+RUN make -j $(nproc --ignore=2)
+RUN make -j $(nproc --ignore=2) install
 WORKDIR /tmp
 
-# # # Netgen v6.2.1901
-# # RUN apt install -y libblas-dev liblapack-dev
-# # RUN git clone -n https://github.com/NGSolve/ngsolve.git
-# # WORKDIR /tmp/ngsolve
-# # RUN git checkout v6.2.1901
-# # RUN git submodule update --init --recursive
-# # WORKDIR /tmp/ngsolve/build
-# # RUN cmake ..
-# # RUN make -j $(nproc --ignore=2); exit 0
-# # RUN make install -j $(nproc --ignore=2); exit 0
-# # # I need to update to CMAKE version 3.14, then I can remove the ; exit 0
-# # WORKDIR /tmp
-# # 
-# # # RUN apt install -y build-essential cmake python python-matplotlib libtool \
-# # #     libcoin80-dev libsoqt4-dev libxerces-c-dev libboost-dev libboost-filesystem-dev \
-# # #     libboost-regex-dev libboost-program-options-dev libboost-signals-dev \
-# # #     libboost-thread-dev libboost-python-dev libqt4-dev libqt4-opengl-dev \
-# # #     qt4-dev-tools python-dev python-pyside pyside-tools libeigen3-dev \
-# # #     libqtwebkit-dev libshiboken-dev libpyside-dev libode-dev swig libzipios++-dev \
-# # #     libfreetype6-dev liboce-foundation-dev liboce-modeling-dev liboce-ocaf-dev \
-# # #     liboce-visualization-dev liboce-ocaf-lite-dev libsimage-dev checkinstall \
-# # #     python-pivy python-qt4 doxygen libspnav-dev oce-draw liboce-foundation-dev \
-# # #     liboce-modeling-dev liboce-ocaf-dev liboce-ocaf-lite-dev \
-# # #     liboce-visualization-dev libmedc-dev libvtk6-dev libproj-dev
-# # # 
-# # # Install IFC Open Shell
-# # # RUN apt install -y wget unzip
-# # # RUN wget https://github.com/IfcOpenShell/IfcOpenShell/releases/download/v0.5.0-preview2/ifcopenshell-python27-master-9ad68db-linux64.zip -O /tmp/tmp_openifc.zip
-# # # RUN unzip /tmp/tmp_openifc.zip -d /tmp
-# # # RUN mv /tmp/ifcopenshell /usr/lib/python2.7/dist-packages
-# # # 
-# # # # Add arc GTK theme, and add an alias so that FreeCAD uses it, to make the GUI bearable
-# # # # to look at.
-# # # RUN apt install -y arc-theme
-# # # RUN echo "alias FreeCAD='GTK2_RC_FILES=/usr/share/themes/Arc-Dark/gtk-2.0/gtkrc FreeCAD -style=gtk'" >> ~/.bashrc
-# # # 
-# # # ADD . /root
-# # # 
-# # # # Add FreeCAD binary dir to path
-# # # RUN echo "PATH=$PATH:/mnt/build/bin" >> ~/.bashrc
-# # # 
-# # # CMD /bin/bash
+# Eigen v3.3.7
+RUN hg clone https://bitbucket.org/eigen/eigen/
+WORKDIR /tmp/eigen 
+RUN hg checkout 3.3.7
+WORKDIR /tmp/eigen/build
+RUN cmake ..
+RUN make -j $(nproc --ignore=2) install
+WORKDIR /tmp
+
+# LibArea vN/A
+RUN git clone https://github.com/danielfalck/libarea.git
+WORKDIR /tmp/libarea/build
+RUN sed -i "s/python-config/python3-config/g" ../CMakeLists.txt
+RUN sed -i "s/COMMAND python -c/COMMAND python3 -c/g" ../CMakeLists.txt
+# The above two commands are for ensuring that CMake installs this for Python
+# 3, not Python 2. If ONLY Python 3 were installed on this system, this would
+# not be a problem, and this hack could be removed.
+RUN cmake ..
+RUN make -j $(nproc --ignore=2)
+RUN make -j $(nproc --ignore=2) install
+WORKDIR /tmp
+
+# Xerces C++ v3.2.2
+RUN wget https://www-eu.apache.org/dist//xerces/c/3/sources/xerces-c-3.2.2.tar.gz
+RUN tar -xzf xerces-c-3.2.2.tar.gz && rm xerces-c-3.2.2.tar.gz
+WORKDIR /tmp/xerces-c-3.2.2/build
+RUN cmake ..
+RUN make -j $(nproc --ignore=2)
+RUN make -j $(nproc --ignore=2) install
+WORKDIR /tmp
+
+# RUN apt install -y build-essential cmake python python-matplotlib libtool \
+#     libcoin80-dev libsoqt4-dev libxerces-c-dev libboost-dev libboost-filesystem-dev \
+#     libboost-regex-dev libboost-program-options-dev libboost-signals-dev \
+#     libboost-thread-dev libboost-python-dev libqt4-dev libqt4-opengl-dev \
+#     qt4-dev-tools python-dev python-pyside pyside-tools libeigen3-dev \
+#     libqtwebkit-dev libshiboken-dev libpyside-dev libode-dev swig libzipios++-dev \
+#     libfreetype6-dev liboce-foundation-dev liboce-modeling-dev liboce-ocaf-dev \
+#     liboce-visualization-dev liboce-ocaf-lite-dev libsimage-dev checkinstall \
+#     python-pivy python-qt4 doxygen libspnav-dev oce-draw liboce-foundation-dev \
+#     liboce-modeling-dev liboce-ocaf-dev liboce-ocaf-lite-dev \
+#     liboce-visualization-dev libmedc-dev libvtk6-dev libproj-dev
+# 
+# Install IFC Open Shell
+# RUN apt install -y wget unzip
+# RUN wget https://github.com/IfcOpenShell/IfcOpenShell/releases/download/v0.5.0-preview2/ifcopenshell-python27-master-9ad68db-linux64.zip -O /tmp/tmp_openifc.zip
+# RUN unzip /tmp/tmp_openifc.zip -d /tmp
+# RUN mv /tmp/ifcopenshell /usr/lib/python2.7/dist-packages
+# 
+# # Add arc GTK theme, and add an alias so that FreeCAD uses it, to make the GUI bearable
+# # to look at.
+# RUN apt install -y arc-theme
+# RUN echo "alias FreeCAD='GTK2_RC_FILES=/usr/share/themes/Arc-Dark/gtk-2.0/gtkrc FreeCAD -style=gtk'" >> ~/.bashrc
+# 
+# ADD . /root
+# 
+# # Add FreeCAD binary dir to path
+# RUN echo "PATH=$PATH:/mnt/build/bin" >> ~/.bashrc
+# 
+# CMD /bin/bash
