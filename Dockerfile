@@ -15,10 +15,19 @@ RUN apt install -y zlib1g-dev libffi-dev libssl-dev
 RUN wget https://www.python.org/ftp/python/3.7.2/Python-3.7.2.tar.xz 
 RUN tar -xf Python-3.7.2.tar.xz && rm Python-3.7.2.tar.xz 
 WORKDIR /tmp/Python-3.7.2/build
-RUN ../configure
+RUN ../configure --without-pymalloc
+# For an unknown reason, the boost build tool (irrelevant of what flags are
+# used) will not find the correct python include directories unless the
+# .../include/python3.7m dir is linked to the .../include/python3.7 dir. Note
+# that here, the m on the end, represents that the python was built with
+# malloc. For that reason, I'm building python without malloc.
 RUN make -j $(nproc --ignore=2)
 RUN make install -j $(nproc --ignore=2)
 WORKDIR /tmp
+
+# Ensuring Python3.7 is the default version
+RUN ln -sf /usr/local/bin/python3.7 /usr/bin/python
+RUN ln -sf /usr/local/bin/python3.7-config /usr/local/bin/python-config
 
 # CMake v3.13.4
 RUN git clone -n https://gitlab.kitware.com/cmake/cmake.git
@@ -36,18 +45,9 @@ RUN wget https://dl.bintray.com/boostorg/release/1.67.0/source/boost_1_67_0.tar.
 RUN tar -xzf boost_1_67_0.tar.gz && rm boost_1_67_0.tar.gz
 WORKDIR /tmp/boost_1_67_0
 RUN ./bootstrap.sh --with-python=/usr/local/bin/python3.7 \
-    --with-python-root=/usr/local/include/python3.7m
-RUN ./b2 -j$(nproc --ignore=2); exit 0
-# Boost keeps using Python 2.7 for certain parts, which causes it to fail when
-# it can't find pyconfig.h. This may result in all the boost-python stuff
-# failing.
+    --with-python-root=/usr/local/include/python3.7
+RUN ./b2 -j$(nproc --ignore=2)
 WORKDIR /tmp
-
-# # The used boost libraries
-# RUN apt install -y libboost-dev libboost-filesystem-dev libboost-regex-dev \
-#     libboost-thread-dev libboost-python-dev libboost-signals-dev \
-#     libboost-program-options-dev
-# # Build boost-python yourself to use python3.7
 
 # Infrequently used languages
 RUN apt install -y perl ruby
@@ -123,6 +123,21 @@ RUN cmake ..
 RUN make -j $(nproc --ignore=2) && make -j $(nproc --ignore=2) install
 WORKDIR /tmp
 
+
+# Move this higher when you do a final rebuild, idiot
+# Configure mercurial to use python 2.7 binary, instead of the standard
+# /usr/bin/python binary, which uses python 3.7, which breaks mercurial.
+RUN sed -i "s/#!\/usr\/bin\/python/#!\/usr\/bin\/python2/g" /usr/bin/hg
+# Move this higher when you do a final rebuild, idiot
+
+
+# Move this higher when you do a final rebuild, idiot
+WORKDIR /tmp/boost_1_67_0
+RUN /tmp/boost_1_67_0/b2 install
+WORKDIR /tmp
+# Move this higher when you do a final rebuild, idiot
+
+
 # Coin 3D v3.1.3
 RUN hg clone https://bitbucket.org/Coin3D/coin
 WORKDIR /tmp/coin/build_tmp
@@ -163,6 +178,12 @@ RUN cmake -DCMAKE_PREFIX_PATH=/usr/local/Qt-5 -DSOQT_BUILD_DOCUMENTATION=OFF ..
 RUN make -j $(nproc --ignore=2) && make -j $(nproc --ignore=2) install
 WORKDIR /tmp
 
+
+# Move this higher when you do a final rebuild, idiot
+RUN apt update
+# Move this higher when you do a final rebuild, idiot
+
+
 # Pivy v0.6.4
 RUN apt install -y gcc-multilib g++-multilib
 RUN hg clone https://bitbucket.org/Coin3D/pivy
@@ -185,7 +206,7 @@ WORKDIR /tmp
 # 2) Finding qmake
 #    The script cannot find the qmake binary, so when running:
 #    `qtinfo.QtInfo()`, add this argument:
-#    `qtinfo.QtInfo(qmake_command=['/usr/local/Qt-5.12.2/bin/qmake'])`
+#    `qtinfo.QtInfo(qmake_command=['/usr/local/Qt-5/bin/qmake'])`
 # 3) CMake misreporting SoQt include dirs
 #    For some reason, CMake reports the SOQT_INCLUDE_DIR as
 #    `/usr/local/include/usr/include`, instead of
@@ -228,11 +249,16 @@ WORKDIR /tmp
 # LibArea vN/A
 RUN git clone https://github.com/danielfalck/libarea.git
 WORKDIR /tmp/libarea/build
-RUN sed -i "s/python-config/python3-config/g" ../CMakeLists.txt
-RUN sed -i "s/COMMAND python -c/COMMAND python3 -c/g" ../CMakeLists.txt
-# The above two commands are for ensuring that CMake installs this for Python
-# 3, not Python 2. If ONLY Python 3 were installed on this system, this would
-# not be a problem, and this hack could be removed.
+# RUN sed -i "s/python-config/python3-config/g" ../CMakeLists.txt
+# RUN sed -i "s/COMMAND python -c/COMMAND python3 -c/g" ../CMakeLists.txt
+# # The above two commands are for ensuring that CMake installs this for Python
+# # 3, not Python 2. If ONLY Python 3 were installed on this system, this would
+# # not be a problem, and this hack could be removed.
+
+# Move this higher when you do a final rebuild, idiot
+RUN ln -s /usr/local/lib/libboost_python37.so.1.67.0 /usr/local/lib/libboost_python.so  
+# Move this higher when you do a final rebuild, idiot
+
 RUN cmake ..
 RUN make -j $(nproc --ignore=2)
 RUN make -j $(nproc --ignore=2) install
@@ -248,7 +274,10 @@ RUN make -j $(nproc --ignore=2) install
 WORKDIR /tmp
 
 # Remove temporary source directories
-RUN rm -rf /tmp/*
+# RUN rm -rf /tmp/*
+
+# Add the build script
+ADD add_files/freecad_build_script.sh /root/build_script.sh
 
 # RUN apt install -y build-essential cmake python python-matplotlib libtool \
 #     libcoin80-dev libsoqt4-dev libxerces-c-dev libboost-dev libboost-filesystem-dev \

@@ -9,9 +9,19 @@ across different docker containers, reducing the time for a build to occur.
 
 # Build docker image
 
+Building the docker image will take several hours.
+
 ```
 docker build -t freecad_env .
 ```
+
+Note that, because of the size of the dependancies, docker may throw a `no
+space left on device` error part way through the build. This is quite an bother
+if you've left the long running build alone to go do something else.  To reduce
+the likelihood of this, you may want to run a `docker system prune` before
+running the build, which is the nuclear option for removing cached docker
+stuff. Also note, that pruning can take a very long time, if you're a regular
+docker user.
 
 # Run docker image
 
@@ -43,11 +53,3 @@ freecad_env
 ```
 FreeCAD
 ```
-
-# Notes
-
-Written using:
-* https://www.freecadweb.org/wiki/CompileOnUnix
-* https://wiki.qt.io/Qt_for_Python/GettingStarted
-* https://dev.opencascade.org/doc/overview/html/occt_dev_guides__building_3rdparty_linux.html
-* https://dev.opencascade.org/doc/overview/html/occt_dev_guides__building_cmake.html

@@ -143,11 +143,12 @@ class pivy_build(build):
     SWIG = ((sys.platform == "win32" and "swig.exe") or "swig")
 
     SWIG_SUPPRESS_WARNINGS = "-w302,306,307,312,314,325,361,362,467,389,503,509,510"
+    #SWIG_PARAMS = "-c++ -python -includeall -modern -D__PIVY__ " + \
+    #          "-I. -Ifake_headers -I\"%s\" %s -o %s_wrap.cpp " + \
+    #          "interfaces" + os.sep + "%s.i"
     ##### Added an extra set of flags for swig here:
     SWIG_PARAMS = "-c++ -python -includeall -modern -D__PIVY__ " + \
-                  "-I/usr/include/boost/compatibility/cpp_c_headers " + \
-                  "-I/usr/include/x86_64-linux-gnu/c++/6/ -I/usr/include/c++/6" + \
-                  "-I/usr/include/x86_64-linux-gnu/ " + \
+                  "-I/usr/local/include/boost/compatibility/cpp_c_headers " + \
                   "-I. -Ifake_headers -I\"%s\" %s -o %s_wrap.cpp " + \
                   "interfaces" + os.sep + "%s.i"
     ################################################
@@ -176,7 +177,7 @@ class pivy_build(build):
     # location to the setup.py script has been raised upstream, so hopefully a
     # solution will come eventually.
     # QTINFO = qtinfo.QtInfo()
-    QTINFO = qtinfo.QtInfo(qmake_command=['/usr/local/Qt-5.12.2/bin/qmake'])
+    QTINFO = qtinfo.QtInfo(qmake_command=['/usr/local/Qt-5/bin/qmake'])
     ###########
 
     SUPPORTED_SWIG_VERSIONS = ['3.0.8', '3.0.10', '3.0.12']
