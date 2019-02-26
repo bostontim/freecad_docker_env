@@ -16,12 +16,10 @@ docker build -t freecad_env .
 ```
 
 Note that, because of the size of the dependancies, docker may throw a `no
-space left on device` error part way through the build. This is quite an bother
-if you've left the long running build alone to go do something else.  To reduce
-the likelihood of this, you may want to run a `docker system prune` before
-running the build, which is the nuclear option for removing cached docker
-stuff. Also note, that pruning can take a very long time, if you're a regular
-docker user.
+space left on device` error part way through the build. To reduce the
+likelyhood of this, try running `docker system prune` or mounting
+`/var/lib/docker` in a more spacious location, a process which is [detailed
+here](http://alexander.holbreich.org/moving-docker-images-different-partition/).
 
 # Run docker image
 
