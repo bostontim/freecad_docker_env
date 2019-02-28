@@ -18,7 +18,7 @@ RUN apt install -y zlib1g-dev libffi-dev libssl-dev && \
     wget https://www.python.org/ftp/python/3.7.2/Python-3.7.2.tar.xz && \
     tar -xf Python-3.7.2.tar.xz && rm Python-3.7.2.tar.xz 
 WORKDIR /tmp/Python-3.7.2/build
-RUN ../configure --without-pymalloc && \
+RUN CFLAGS="-fPIC" ../configure --enable-shared --without-pymalloc && \
 # For an unknown reason, the boost build tool (irrelevant of what flags are
 # used) will not find the correct python include directories unless the
 # .../include/python3.7m dir is linked to the .../include/python3.7 dir. Note
@@ -79,22 +79,11 @@ WORKDIR /tmp
 # Clang v7.0.1
 RUN git clone -n https://github.com/llvm/llvm-project.git && \
     cd /tmp/llvm-project && git checkout llvmorg-7.0.1
-# WORKDIR /tmp/llvm-project
-# RUN git checkout llvmorg-7.0.1
 WORKDIR /tmp/llvm-project/build
 RUN cmake -DLLVM_ENABLE_PROJECTS=clang -G "Unix Makefiles" \
     -DCMAKE_BUILD_TYPE=Release ../llvm && \
     make -j $(nproc --ignore=2) && \
     make -j $(nproc --ignore=2) install
-WORKDIR /tmp
-
-# Pyside2 and shiboken2 v2-5.12
-RUN git clone -n https://code.qt.io/pyside/pyside-setup
-WORKDIR /tmp/pyside-setup
-RUN git checkout 5.12 && \
-    git submodule update --init --recursive --progress && \
-    python setup.py build --qmake=/usr/local/Qt-5/bin/qmake --ignore-git \
-    --parallel=$(nproc --ignore=2)
 WORKDIR /tmp
 
 # Freetype v 2.9.1
@@ -124,7 +113,8 @@ RUN ./configure --enable-64bit --enable-shared --enable-gcc --enable-threads && 
 WORKDIR /tmp
 
 # Open Cascade v7.3
-RUN apt install -y libxt-dev libxmu-dev libxi-dev libgl1-mesa-dev libglu1-mesa-dev libfreeimage-dev libtbb-dev && \
+RUN apt install -y libxt-dev libxmu-dev libxi-dev libgl1-mesa-dev \
+    libglu1-mesa-dev libfreeimage-dev libtbb-dev && \
     echo -e "\n\n\n" | ssh-keygen -t rsa && \
     wget "http://git.dev.opencascade.org/gitweb/?p=occt.git;a=snapshot;h=42da0d5115bff683c6b596e66cdeaff957f81e7d;sf=tgz" -O occt.tar.gz && \
     mkdir /tmp/occt && \
@@ -233,8 +223,6 @@ WORKDIR /tmp
 # simage v1.7.0+
 RUN hg clone https://bitbucket.org/Coin3D/simage && \
     cd /tmp/simage && hg checkout 2a7542b
-# WORKDIR /tmp/simage
-# RUN hg checkout 2a7542b
 WORKDIR /tmp/simage/build
 RUN ../configure && \
     make -j $(nproc --ignore=2) && \
@@ -244,8 +232,6 @@ WORKDIR /tmp
 # Eigen v3.3.7
 RUN hg clone https://bitbucket.org/eigen/eigen/ && \
     cd /tmp/eigen && hg checkout 3.3.7
-# WORKDIR /tmp/eigen 
-# RUN hg checkout 3.3.7
 WORKDIR /tmp/eigen/build
 RUN cmake .. && \
     make -j $(nproc --ignore=2) install
@@ -268,8 +254,20 @@ RUN cmake .. && \
     make -j $(nproc --ignore=2) install
 WORKDIR /tmp
 
+# Pyside2 and shiboken2 v2-5.12
+RUN git clone -n https://code.qt.io/pyside/pyside-setup /root/pyside-setup
+WORKDIR /root/pyside-setup
+RUN git checkout 5.12 && \
+    git submodule update --init --recursive --progress && \
+    python setup.py install --cmake=/usr/local/bin/cmake \
+    --qmake=/usr/local/Qt-5/bin/qmake --ignore-git \
+    --skip-docs --parallel=$(nproc --ignore=2)
+WORKDIR /tmp
+
 # Remove temporary files
 RUN rm -rfv /tmp/*
+
+RUN apt install -y vim
 
 # Add the build script
 ADD add_files/freecad_build_script.sh /root/build_script.sh
