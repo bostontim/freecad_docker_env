@@ -80,11 +80,3 @@ running `docker system prune`.
 docker login registry.gitlab.com
 docker push registry.gitlab.com/daviddaish/freecad_docker_env:updates
 ```
-
-# Todo
-
-* Update readme to be user ready.
-* Get qtwebkit working so FreeCAD can find it.
-* Compress stages into single `RUN` commands, including `rm`, to reduce image
-  sizes.
-* Add the FEM dependancies.
