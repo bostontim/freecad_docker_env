@@ -18,7 +18,7 @@ RUN apt install -y zlib1g-dev libffi-dev libssl-dev && \
     wget https://www.python.org/ftp/python/3.7.2/Python-3.7.2.tar.xz && \
     tar -xf Python-3.7.2.tar.xz && rm Python-3.7.2.tar.xz 
 WORKDIR /tmp/Python-3.7.2/build
-RUN CFLAGS="-fPIC" ../configure --enable-shared --without-pymalloc && \
+RUN CFLAGS="-fPIC" ../configure --without-pymalloc && \
 # For an unknown reason, the boost build tool (irrelevant of what flags are
 # used) will not find the correct python include directories unless the
 # .../include/python3.7m dir is linked to the .../include/python3.7 dir. Note
@@ -30,8 +30,7 @@ WORKDIR /tmp
 
 # Ensuring Python3.7 is the default version
 RUN ln -sf /usr/local/bin/python3.7 /usr/bin/python && \
-    ln -sf /usr/local/bin/python3.7-config /usr/local/bin/python-config && \
-    ln -s /usr/local/lib/libboost_python37.so.1.67.0 /usr/local/lib/libboost_python.so  
+    ln -sf /usr/local/bin/python3.7-config /usr/local/bin/python-config
 
 # CMake v3.13.4
 RUN git clone -n https://gitlab.kitware.com/cmake/cmake.git
@@ -54,23 +53,37 @@ RUN ./bootstrap.sh --with-python=/usr/local/bin/python3.7 \
     ./b2 -j$(nproc --ignore=2) install
 WORKDIR /tmp
 
+# Link libboost_python, so it can be found without it's python version
+RUN ln -s /usr/local/lib/libboost_python37.so.1.67.0 /usr/local/lib/libboost_python.so  
+
 # Infrequently used languages
 RUN apt install -y perl ruby
+
+# Freetype v 2.9.1
+RUN wget https://download.savannah.gnu.org/releases/freetype/freetype-2.9.1.tar.gz && \
+    tar -xzf freetype-2.9.1.tar.gz && rm freetype-2.9.1.tar.gz
+WORKDIR /tmp/freetype-2.9.1
+RUN make -j $(nproc --ignore=2) && \
+    make -j $(nproc --ignore=2) install
+WORKDIR /tmp
 
 # QT5's accessability dependancies, webkit dependancies, multimedia
 # dependancies, and Libxcb
 RUN apt install -y libatspi2.0-dev libdbus-1-dev flex gperf libicu-dev \
     libxslt-dev ruby bison libasound2-dev libgstreamer1.0-dev \
     libgstreamer-plugins-base1.0-dev '^libxcb.*-dev' libx11-xcb-dev \
-    libglu1-mesa-dev libxrender-dev libxi-dev libxcb-xinerama0-dev
+    libglu1-mesa-dev libxrender-dev libxi-dev libxcb-xinerama0-dev \
+    libfontconfig1-dev libx11-dev libxext-dev libxfixes-dev libxcb1-dev \
+    libxkbcommon-dev
 
 # QT5 v5.12
-RUN git clone -n git://code.qt.io/qt/qt5.git
+RUN git clone -n git://code.qt.io/qt/qt5.git && \
+    cd /tmp/qt5 && git checkout 5.12
 WORKDIR /tmp/qt5
-RUN git checkout 5.12 && \
-    perl init-repository --module-subset=default,-qtwebengine,-qtpurchasing,\
--qtsensors,-qtgamepad,-qtdoc,-qtfeedback,-qtandroidextras && \
-    ./configure -opensource -confirm-license -nomake examples -nomake tests && \
+RUN perl init-repository --module-subset=default,-qtwebengine,-qtpurchasing,\
+-qtsensors,-qtgamepad,-qtdoc,-qtfeedback,-qtandroidextras
+RUN ./configure -opensource -confirm-license -qt-xcb \
+    -nomake examples -nomake tests && \
     make -j $(nproc --ignore=2) && \
     make -j $(nproc --ignore=2) install && \
     ln -s /usr/local/Qt-5.12.2 /usr/local/Qt-5
@@ -86,13 +99,6 @@ RUN cmake -DLLVM_ENABLE_PROJECTS=clang -G "Unix Makefiles" \
     make -j $(nproc --ignore=2) install
 WORKDIR /tmp
 
-# Freetype v 2.9.1
-RUN wget https://download.savannah.gnu.org/releases/freetype/freetype-2.9.1.tar.gz && \
-    tar -xzf freetype-2.9.1.tar.gz && rm freetype-2.9.1.tar.gz
-WORKDIR /tmp/freetype-2.9.1
-RUN make -j $(nproc --ignore=2) && \
-    make -j $(nproc --ignore=2) install
-WORKDIR /tmp
 
 # TCL v8.7
 RUN wget https://prdownloads.sourceforge.net/tcl/tcl8.7a1-src.tar.gz && \
@@ -115,7 +121,6 @@ WORKDIR /tmp
 # Open Cascade v7.3
 RUN apt install -y libxt-dev libxmu-dev libxi-dev libgl1-mesa-dev \
     libglu1-mesa-dev libfreeimage-dev libtbb-dev && \
-    echo -e "\n\n\n" | ssh-keygen -t rsa && \
     wget "http://git.dev.opencascade.org/gitweb/?p=occt.git;a=snapshot;h=42da0d5115bff683c6b596e66cdeaff957f81e7d;sf=tgz" -O occt.tar.gz && \
     mkdir /tmp/occt && \
     tar -xzf occt.tar.gz -C /tmp/occt --strip-components 1
@@ -135,7 +140,8 @@ RUN cmake .. && \
 WORKDIR /tmp
 
 # Coin 3D v3.1.3
-RUN hg clone https://bitbucket.org/Coin3D/coin
+RUN hg clone https://bitbucket.org/Coin3D/coin && \
+    cd /tmp/coin && hg checkout 40877d4
 WORKDIR /tmp/coin/build_tmp
 RUN cmake -DCOIN_BUILD_DOCUMENTATION=OFF .. && \
     make -j $(nproc --ignore=2) && \
@@ -171,7 +177,8 @@ RUN ./configure && \
 WORKDIR /tmp
 
 # SOQT v1.5.0
-RUN hg clone https://bitbucket.org/Coin3D/soqt
+RUN hg clone https://bitbucket.org/Coin3D/soqt && \
+    cd /tmp/soqt && hg checkout 423d44b
 WORKDIR /tmp/soqt/build_tmp
 RUN cmake -DCMAKE_PREFIX_PATH=/usr/local/Qt-5 -DSOQT_BUILD_DOCUMENTATION=OFF .. && \
     make -j $(nproc --ignore=2) && make -j $(nproc --ignore=2) install
@@ -237,8 +244,9 @@ RUN cmake .. && \
     make -j $(nproc --ignore=2) install
 WORKDIR /tmp
 
-# LibArea vN/A
-RUN git clone https://github.com/danielfalck/libarea.git
+# LibArea v12/7/2015
+RUN git clone -n https://github.com/danielfalck/libarea.git && \
+    cd /tmp/libarea && git checkout 51e6778
 WORKDIR /tmp/libarea/build
 RUN cmake .. && \
     make -j $(nproc --ignore=2) && \
@@ -255,8 +263,8 @@ RUN cmake .. && \
 WORKDIR /tmp
 
 # Pyside2 and shiboken2 v2-5.12
-RUN git clone -n https://code.qt.io/pyside/pyside-setup /root/pyside-setup
-WORKDIR /root/pyside-setup
+RUN git clone -n https://code.qt.io/pyside/pyside-setup
+WORKDIR /tmp/pyside-setup
 RUN git checkout 5.12 && \
     git submodule update --init --recursive --progress && \
     python setup.py install --cmake=/usr/local/bin/cmake \
@@ -264,42 +272,29 @@ RUN git checkout 5.12 && \
     --skip-docs --parallel=$(nproc --ignore=2)
 WORKDIR /tmp
 
+# IFC Open Shell v0.6.0a1
+RUN git clone -n https://github.com/IfcOpenShell/IfcOpenShell.git && \
+    cd /tmp/IfcOpenShell && git checkout v0.6.0a1
+WORKDIR /tmp/IfcOpenShell/build
+RUN cmake ../cmake -DCOLLADA_SUPPORT=0 \
+    -DOCC_INCLUDE_DIR=/usr/local/include/opencascade \
+    -DOCC_LIBRARY_DIR=/usr/local/lib && \
+    make -j $(nproc --ignore=2) && \
+    make -j $(nproc --ignore=2) install
+WORKDIR /tmp
+
 # Remove temporary files
 RUN rm -rfv /tmp/*
-
-RUN apt install -y vim
 
 # Add the build script
 ADD add_files/freecad_build_script.sh /root/build_script.sh
 
-WORKDIR /root
+# Note, had to add this to freecad source CMakeLists.txt:
+# add_compile_options(-fpermissive -fPIC)
 
-# RUN apt install -y build-essential cmake python python-matplotlib libtool \
-#     libcoin80-dev libsoqt4-dev libxerces-c-dev libboost-dev libboost-filesystem-dev \
-#     libboost-regex-dev libboost-program-options-dev libboost-signals-dev \
-#     libboost-thread-dev libboost-python-dev libqt4-dev libqt4-opengl-dev \
-#     qt4-dev-tools python-dev python-pyside pyside-tools libeigen3-dev \
-#     libqtwebkit-dev libshiboken-dev libpyside-dev libode-dev swig libzipios++-dev \
-#     libfreetype6-dev liboce-foundation-dev liboce-modeling-dev liboce-ocaf-dev \
-#     liboce-visualization-dev liboce-ocaf-lite-dev libsimage-dev checkinstall \
-#     python-pivy python-qt4 doxygen libspnav-dev oce-draw liboce-foundation-dev \
-#     liboce-modeling-dev liboce-ocaf-dev liboce-ocaf-lite-dev \
-#     liboce-visualization-dev libmedc-dev libvtk6-dev libproj-dev
-# 
-# Install IFC Open Shell
-# RUN apt install -y wget unzip
-# RUN wget https://github.com/IfcOpenShell/IfcOpenShell/releases/download/v0.5.0-preview2/ifcopenshell-python27-master-9ad68db-linux64.zip -O /tmp/tmp_openifc.zip
-# RUN unzip /tmp/tmp_openifc.zip -d /tmp
-# RUN mv /tmp/ifcopenshell /usr/lib/python2.7/dist-packages
-# 
 # # Add arc GTK theme, and add an alias so that FreeCAD uses it, to make the GUI bearable
 # # to look at.
 # RUN apt install -y arc-theme
 # RUN echo "alias FreeCAD='GTK2_RC_FILES=/usr/share/themes/Arc-Dark/gtk-2.0/gtkrc FreeCAD -style=gtk'" >> ~/.bashrc
-# 
-# ADD . /root
-# 
-# # Add FreeCAD binary dir to path
-# RUN echo "PATH=$PATH:/mnt/build/bin" >> ~/.bashrc
-# 
-# CMD /bin/bash
+
+WORKDIR /root

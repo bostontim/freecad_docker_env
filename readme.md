@@ -1,8 +1,8 @@
 This is a docker container intended to act as a build and run environment for
 FreeCAD within a Debian docker container, because I am too lazy to track down
-the Solus OS `eopkg` packages for FreeCAD's buildtime dependencies.
+the Solus OS `eopkg` packages for FreeCAD's dependencies.
 
-The directories containing FreeCAD's source code and build, are not included
+The directories containing FreeCAD's source code and build are not included
 inside the docker image. Instead, they are attached to the docker container
 when you run the container. This allows the built code to have continuity
 across different docker containers, reducing the time for a build to occur.
@@ -51,3 +51,8 @@ freecad_env
 ```
 FreeCAD
 ```
+
+# Todo
+
+* update readme to be user ready
+* Get qtwebkit working so freecad can find it
