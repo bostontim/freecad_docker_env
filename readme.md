@@ -14,7 +14,7 @@ across different docker containers, reducing the time for a build to occur.
 docker pull registry.gitlab.com/daviddaish/freecad_docker_env:latest
 ```
 
-# Run docker image
+## Run image
 
 Allow xhost access, so you can use the GUI. Note that this method is easy, [but
 insecure](https://wiki.ros.org/docker/Tutorials/GUI).
