@@ -4,7 +4,8 @@ FreeCAD.
 The directories containing FreeCAD's source code and build are not included
 inside the docker image. Instead, they are attached to the docker container
 when you run the container. This allows the built code to have continuity
-across different docker containers, reducing the time for a build to occur.
+across different docker containers, reducing the time for a build to occur, and
+allowing you to use your own editor/IDE outside of the container.
 
 # Image use
 
