@@ -187,10 +187,11 @@ RUN hg clone https://bitbucket.org/Coin3D/soqt && \
 RUN apt install -y gcc-multilib g++-multilib && \
     hg clone https://bitbucket.org/Coin3D/pivy && \
     cd /tmp/pivy && hg checkout 0.6.4 && \
-    export CMAKE_PREFIX_PATH=/usr/local/Qt-5 && \
     rm setup.py
 ADD add_files/pivy_setup.py /tmp/pivy/setup.py
-RUN CFLAGS="-fpermissive" python3 setup.py build && \
+RUN cd /tmp/pivy && \
+    export CMAKE_PREFIX_PATH=/usr/local/Qt-5 && \
+    CFLAGS="-fpermissive" python3 setup.py build && \
     python3 setup.py install && \
     rm -rfv /tmp/*
 # There are four issues I ran into with the Pivy setup.py script while I was
@@ -228,7 +229,7 @@ RUN CFLAGS="-fpermissive" python3 setup.py build && \
 # simage v1.7.0+
 RUN hg clone https://bitbucket.org/Coin3D/simage && \
     cd /tmp/simage && hg checkout 2a7542b && \
-    mkdir /tmp/simage/build && cd /tmp/simage/build && \
+    mkdir /tmp/simage/tmp_build && cd /tmp/simage/tmp_build && \
     ../configure && \
     make -j $(nproc --ignore=2) && \
     make -j $(nproc --ignore=2) install && \
@@ -245,7 +246,7 @@ RUN hg clone https://bitbucket.org/eigen/eigen/ && \
 # LibArea v12/7/2015
 RUN git clone -n https://github.com/danielfalck/libarea.git && \
     cd /tmp/libarea && git checkout 51e6778 && \
-    mkdir /tmp/libarea/build && cd/tmp/libarea/build && \ 
+    mkdir /tmp/libarea/build && cd /tmp/libarea/build && \ 
     cmake .. && \
     make -j $(nproc --ignore=2) && \
     make -j $(nproc --ignore=2) install && \
