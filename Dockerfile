@@ -292,4 +292,7 @@ ADD add_files/freecad_build_script.sh /root/build_script.sh
 # RUN apt install -y arc-theme
 # RUN echo "alias FreeCAD='GTK2_RC_FILES=/usr/share/themes/Arc-Dark/gtk-2.0/gtkrc FreeCAD -style=gtk'" >> ~/.bashrc
 
+# Add enviroment varaible so CMake can find QT5
+ENV CMAKE_PREFIX_PATH=/usr/local/Qt-5
+
 WORKDIR /root
