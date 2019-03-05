@@ -281,6 +281,9 @@ RUN git clone -n https://github.com/IfcOpenShell/IfcOpenShell.git && \
     make -j $(nproc --ignore=2) install && \
     rm -rfv /tmp/*
 
+# Numpy v1.16.2 and Matplotlib v3.0.3
+RUN python -m pip install numpy==1.16.2 matplotlib==3.0.3
+
 # Add the build script
 ADD add_files/freecad_build_script.sh /root/build_script.sh
 
