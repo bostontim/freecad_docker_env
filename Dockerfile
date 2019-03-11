@@ -162,7 +162,7 @@ RUN wget gmsh.info/src/gmsh-4.1.4-source.tgz && \
 RUN hg clone https://bitbucket.org/Coin3D/coin && \
     cd /tmp/coin && hg checkout 40877d4 && \
     mkdir /tmp/coin/build_tmp && cd /tmp/coin/build_tmp && \
-    cmake -DCOIN_BUILD_DOCUMENTATION=OFF .. && \
+    cmake .. && \
     make -j $(nproc --ignore=2) && \
     make -j $(nproc --ignore=2) install && \
     rm -rfv /tmp/*
@@ -200,7 +200,7 @@ RUN apt install -y libpcre3-dev && \
 RUN hg clone https://bitbucket.org/Coin3D/soqt && \
     cd /tmp/soqt && hg checkout 423d44b && \
     mkdir /tmp/soqt/build_tmp && cd /tmp/soqt/build_tmp && \
-    cmake -DCMAKE_PREFIX_PATH=/usr/local/Qt-5 -DSOQT_BUILD_DOCUMENTATION=OFF .. && \
+    cmake -DCMAKE_PREFIX_PATH=/usr/local/Qt-5 .. && \
     make -j $(nproc --ignore=2) && make -j $(nproc --ignore=2) install && \
     rm -rfv /tmp/*
 
@@ -319,7 +319,7 @@ ADD add_files/freecad_build_script.sh /root/build_script.sh
 # Add enviroment varaible so CMake can find QT5
 ENV CMAKE_PREFIX_PATH=/usr/local/Qt-5
 
-# Add enviroment variable so Qt5 can find the shared libaries
+# Add enviroment variable so Qt5 can find it's shared libaries
 ENV LD_LIBRARY_PATH=/usr/local/Qt-5/lib/
 
 WORKDIR /root
