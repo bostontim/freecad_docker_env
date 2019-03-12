@@ -103,6 +103,9 @@ RUN apt install -y libwayland-dev libwayland-egl1-mesa libwayland-server0 \
 RUN apt install -y libsqlite3-dev libjpeg-dev libwebp-dev libxcomposite-dev && \
     git clone -n https://code.qt.io/qt/qtwebkit.git && \
     cd /tmp/qtwebkit && git checkout 5.212 && \
+    # Disable the all-in-one buuld, because it causes GCC to hang indefinitely
+    # (as far as I could tell).  Also, it appears to only be needed for the
+    # Windows build.
     sed -i '1s/^/set(ENABLE_ALLINONE_BUILD OFF)\n/' /tmp/qtwebkit/Source/WebCore/CMakeLists.txt && \
     qmake && \
     make -j $(nproc --ignore=2) && \
