@@ -171,14 +171,7 @@ class pivy_build(build):
     }
 
     import qtinfo
-    # Added argument to instantiation of qtinfo.QtInfo()
-    # This is a hacky solution for getting the setup script to recognise the
-    # qmake binary. The issue that there isn't a good way to pass an abnormal qmake
-    # location to the setup.py script has been raised upstream, so hopefully a
-    # solution will come eventually.
-    # QTINFO = qtinfo.QtInfo()
-    QTINFO = qtinfo.QtInfo(qmake_command=['/usr/local/Qt-5/bin/qmake'])
-    ###########
+    QTINFO = qtinfo.QtInfo()
 
     SUPPORTED_SWIG_VERSIONS = ['3.0.8', '3.0.10', '3.0.12']
     SWIG_VERSION = ""

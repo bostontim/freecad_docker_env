@@ -6,8 +6,8 @@ WORKDIR /tmp
 
 # Build tools, and misc supporting tools
 RUN apt update && \
-    apt install -y build-essential gfortran automake bison libtool git \
-    mercurial wget unzip 
+    apt install -y build-essential gfortran automake bison flex libtool git \
+    mercurial wget unzip doxygen
 
 # Configure mercurial to use python 2.7 binary, instead of the standard
 # /usr/bin/python binary, which uses python 3.7, which breaks mercurial.
@@ -79,14 +79,38 @@ RUN apt install -y libatspi2.0-dev libdbus-1-dev flex gperf libicu-dev \
 # QT5 v5.12
 RUN git clone -n git://code.qt.io/qt/qt5.git && \
     cd /tmp/qt5 && git checkout 5.12 && \
-    perl init-repository --module-subset=default,-qtwebengine,-qtpurchasing,\
--qtsensors,-qtgamepad,-qtdoc,-qtfeedback,-qtandroidextras && \
+    perl init-repository --module-subset=default,-qtpurchasing,\
+-qtgamepad,-qtfeedback,-qtandroidextras && \
     ./configure -opensource -confirm-license -qt-xcb \
     -nomake examples -nomake tests && \
     make -j $(nproc --ignore=2) && \
     make -j $(nproc --ignore=2) install && \
     rm -rfv /tmp/* && \
     ln -s /usr/local/Qt-5.12.2 /usr/local/Qt-5
+ENV PATH="/usr/local/Qt-5/bin:${PATH}"
+
+# QT Wayland v5.12
+RUN apt install -y libwayland-dev libwayland-egl1-mesa libwayland-server0 \
+    libgles2-mesa-dev libxkbcommon-dev && \
+    git clone -n git://code.qt.io/qt/qtwayland.git && \
+    cd qtwayland && git checkout 5.12 &&\
+    qmake && \
+    make -j $(nproc --ignore=2) && \
+    make -j $(nproc --ignore=2) install && \
+    rm -rfv /tmp/*
+
+# QT WebKit v5.212
+RUN apt install -y libsqlite3-dev libjpeg-dev libwebp-dev libxcomposite-dev && \
+    git clone -n https://code.qt.io/qt/qtwebkit.git && \
+    cd /tmp/qtwebkit && git checkout 5.212 && \
+    # Disable the all-in-one buuld, because it causes GCC to hang indefinitely
+    # (as far as I could tell).  Also, it appears to only be needed for the
+    # Windows build.
+    sed -i '1s/^/set(ENABLE_ALLINONE_BUILD OFF)\n/' /tmp/qtwebkit/Source/WebCore/CMakeLists.txt && \
+    qmake && \
+    make -j $(nproc --ignore=2) && \
+    make -j $(nproc --ignore=2) install && \
+    rm -rfv /tmp/*
 
 # Clang v7.0.1
 RUN git clone -n https://github.com/llvm/llvm-project.git && \
@@ -141,7 +165,7 @@ RUN wget gmsh.info/src/gmsh-4.1.4-source.tgz && \
 RUN hg clone https://bitbucket.org/Coin3D/coin && \
     cd /tmp/coin && hg checkout 40877d4 && \
     mkdir /tmp/coin/build_tmp && cd /tmp/coin/build_tmp && \
-    cmake -DCOIN_BUILD_DOCUMENTATION=OFF .. && \
+    cmake .. && \
     make -j $(nproc --ignore=2) && \
     make -j $(nproc --ignore=2) install && \
     rm -rfv /tmp/*
@@ -179,7 +203,7 @@ RUN apt install -y libpcre3-dev && \
 RUN hg clone https://bitbucket.org/Coin3D/soqt && \
     cd /tmp/soqt && hg checkout 423d44b && \
     mkdir /tmp/soqt/build_tmp && cd /tmp/soqt/build_tmp && \
-    cmake -DCMAKE_PREFIX_PATH=/usr/local/Qt-5 -DSOQT_BUILD_DOCUMENTATION=OFF .. && \
+    cmake -DCMAKE_PREFIX_PATH=/usr/local/Qt-5 .. && \
     make -j $(nproc --ignore=2) && make -j $(nproc --ignore=2) install && \
     rm -rfv /tmp/*
 
@@ -267,7 +291,7 @@ RUN git clone -n https://code.qt.io/pyside/pyside-setup && \
     git submodule update --init --recursive --progress && \
     python setup.py install --cmake=/usr/local/bin/cmake \
     --qmake=/usr/local/Qt-5/bin/qmake --ignore-git \
-    --skip-docs --parallel=$(nproc --ignore=2) && \
+    --parallel=$(nproc --ignore=2) && \
     rm -rfv /tmp/*
 
 # IFC Open Shell v0.6.0a1
@@ -297,5 +321,8 @@ ADD add_files/freecad_build_script.sh /root/build_script.sh
 
 # Add enviroment varaible so CMake can find QT5
 ENV CMAKE_PREFIX_PATH=/usr/local/Qt-5
+
+# Add enviroment variable so Qt5 can find it's shared libaries
+ENV LD_LIBRARY_PATH=/usr/local/Qt-5/lib/
 
 WORKDIR /root

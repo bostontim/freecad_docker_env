@@ -67,7 +67,7 @@ registry.gitlab.com/daviddaish/freecad_docker_env:latest
 Building the docker image will take several hours.
 
 ```
-docker build -t registry.gitlab.com/daviddaish/freecad_docker_env .
+docker build -t registry.gitlab.com/daviddaish/freecad_docker_env:latest .
 ```
 
 Note that, because of the size of the dependancies, docker may throw a `no
