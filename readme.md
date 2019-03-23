@@ -48,6 +48,9 @@ docker run -it --rm \
 registry.gitlab.com/daviddaish/freecad_docker_env:latest
 ```
 
+You will be able to find the mounted directories within the container in the
+`/mnt` directory, named `/mnt/source`, `/mnt/build`, and `/mnt/files`.
+
 ## Build FreeCAD
 
 ```
