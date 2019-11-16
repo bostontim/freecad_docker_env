@@ -76,9 +76,10 @@ RUN apt install -y libatspi2.0-dev libdbus-1-dev flex gperf libicu-dev \
     libfontconfig1-dev libx11-dev libxext-dev libxfixes-dev libxcb1-dev \
     libxkbcommon-dev
 
-# QT5 v5.12
-RUN git clone -n git://code.qt.io/qt/qt5.git && \
-    cd /tmp/qt5 && git checkout 5.12 && \
+# QT5 v5.12.6
+RUN QT_VER=5.12.6 && \
+    git clone -n git://code.qt.io/qt/qt5.git && \
+    cd /tmp/qt5 && git checkout $QT_VER && \
     perl init-repository --module-subset=default,-qtpurchasing,\
 -qtgamepad,-qtfeedback,-qtandroidextras && \
     ./configure -opensource -confirm-license -qt-xcb \
@@ -86,7 +87,7 @@ RUN git clone -n git://code.qt.io/qt/qt5.git && \
     make -j $(nproc --ignore=2) && \
     make -j $(nproc --ignore=2) install && \
     rm -rfv /tmp/* && \
-    ln -s /usr/local/Qt-5.12.2 /usr/local/Qt-5
+    ln -v -s /usr/local/Qt-$QT_VER /usr/local/Qt-5
 ENV PATH="/usr/local/Qt-5/bin:${PATH}"
 
 # QT Wayland v5.12
