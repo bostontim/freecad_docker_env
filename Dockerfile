@@ -309,21 +309,40 @@ RUN git clone -n https://github.com/IfcOpenShell/IfcOpenShell.git && \
 # Numpy v1.16.2 and Matplotlib v3.0.3
 RUN python -m pip install numpy==1.16.2 matplotlib==3.0.3
 
-# Add the build script
-ADD add_files/freecad_build_script.sh /root/build_script.sh
+# SPOOLES v2.2
+RUN mkdir spooles && cd spooles && \
+    wget www.netlib.org/linalg/spooles/spooles.2.2.tgz && \
+    tar -xzf spooles.2.2.tgz && \
+    make lib CC=cc
+    # Note: Spooles can be made as "make lib", "make drivers", or "make global". It is not immediately clear
+    # which one should be used.
 
-# Note, had to add this to freecad source CMakeLists.txt:
-# add_compile_options(-fpermissive -fPIC)
+RUN mkdir arpack && cd arpack && \
+    wget https://www.caam.rice.edu/software/ARPACK/SRC/arpack96.tar.gz && \
+    wget https://www.caam.rice.edu/software/ARPACK/SRC/patch.tar.gz && \
+    tar -xzf arpack96.tar.gz && \
+    tar -xzf patch.tar.gz && \
+    cd ARPACK && \
+    make lib home=. MAKE=make SHELL=bash FC=gfortran FFLAGS="-O"
 
-# # Add arc GTK theme, and add an alias so that FreeCAD uses it, to make the GUI bearable
-# # to look at.
-# RUN apt install -y arc-theme
-# RUN echo "alias FreeCAD='GTK2_RC_FILES=/usr/share/themes/Arc-Dark/gtk-2.0/gtkrc FreeCAD -style=gtk'" >> ~/.bashrc
-
-# Add enviroment varaible so CMake can find QT5
-ENV CMAKE_PREFIX_PATH=/usr/local/Qt-5
-
-# Add enviroment variable so Qt5 can find it's shared libaries
-ENV LD_LIBRARY_PATH=/usr/local/Qt-5/lib/
-
-WORKDIR /root
+## # CalculiX v2.16
+## RUN wget http://www.dhondt.de/ccx_2.16.src.tar.bz2
+## 
+## # Add the build script
+## ADD add_files/freecad_build_script.sh /root/build_script.sh
+## 
+## # Note, had to add this to freecad source CMakeLists.txt:
+## # add_compile_options(-fpermissive -fPIC)
+## 
+## # # Add arc GTK theme, and add an alias so that FreeCAD uses it, to make the GUI bearable
+## # # to look at.
+## # RUN apt install -y arc-theme
+## # RUN echo "alias FreeCAD='GTK2_RC_FILES=/usr/share/themes/Arc-Dark/gtk-2.0/gtkrc FreeCAD -style=gtk'" >> ~/.bashrc
+## 
+## # Add enviroment varaible so CMake can find QT5
+## ENV CMAKE_PREFIX_PATH=/usr/local/Qt-5
+## 
+## # Add enviroment variable so Qt5 can find it's shared libaries
+## ENV LD_LIBRARY_PATH=/usr/local/Qt-5/lib/
+## 
+## WORKDIR /root
