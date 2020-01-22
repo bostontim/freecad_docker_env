@@ -4,7 +4,7 @@ set -e
 
 cmake -j$(nproc) \
     -D BOOST_ROOT=/usr/local/include/boost \
-    -D BUILD_QT5=ON -D BUILD_FEM=OFF -D BUILD_SANDBOX=ON \
+    -D BUILD_QT5=ON -D BUILD_FEM=ON -D BUILD_SANDBOX=ON \
     -D PYTHON_LIBRARY=/usr/local/lib/libpython3.7.a \
     -D PYTHON_INCLUDE_DIR=/usr/local/include/python3.7 \
     -D PYTHON_PACKAGES_PATH=/usr/local/lib/python3.7/site-packages \

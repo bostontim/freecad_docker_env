@@ -313,36 +313,64 @@ RUN python -m pip install numpy==1.16.2 matplotlib==3.0.3
 RUN mkdir spooles && cd spooles && \
     wget www.netlib.org/linalg/spooles/spooles.2.2.tgz && \
     tar -xzf spooles.2.2.tgz && \
-    make lib CC=cc
+    make lib CC=cc -j $(nproc --ignore=2) && \
+    mkdir /usr/local/SPOOLES.2.2 && \
+    mv * /usr/local/SPOOLES.2.2 && \
+    rm -rfv /tmp/*
     # Note: Spooles can be made as "make lib", "make drivers", or "make global". It is not immediately clear
     # which one should be used.
 
+# ARpack v96
 RUN mkdir arpack && cd arpack && \
     wget https://www.caam.rice.edu/software/ARPACK/SRC/arpack96.tar.gz && \
     wget https://www.caam.rice.edu/software/ARPACK/SRC/patch.tar.gz && \
     tar -xzf arpack96.tar.gz && \
     tar -xzf patch.tar.gz && \
     cd ARPACK && \
-    make lib home=. MAKE=make SHELL=bash FC=gfortran FFLAGS="-O"
+    sed -i 's/      EXTERNAL           ETIME/*     EXTERNAL           ETIME/' UTIL/second.f && \
+    make lib home=/tmp/arpack/ARPACK MAKE=make SHELL=bash FC=gfortran PLAT=INTEL FFLAGS="-O"  && \
+    mkdir /usr/local/ARPACK && \
+    mv libarpack_INTEL.a /usr/local/ARPACK && \
+    rm -rfv /tmp/*
 
-## # CalculiX v2.16
-## RUN wget http://www.dhondt.de/ccx_2.16.src.tar.bz2
-## 
-## # Add the build script
-## ADD add_files/freecad_build_script.sh /root/build_script.sh
-## 
-## # Note, had to add this to freecad source CMakeLists.txt:
-## # add_compile_options(-fpermissive -fPIC)
-## 
-## # # Add arc GTK theme, and add an alias so that FreeCAD uses it, to make the GUI bearable
-## # # to look at.
-## # RUN apt install -y arc-theme
-## # RUN echo "alias FreeCAD='GTK2_RC_FILES=/usr/share/themes/Arc-Dark/gtk-2.0/gtkrc FreeCAD -style=gtk'" >> ~/.bashrc
-## 
-## # Add enviroment varaible so CMake can find QT5
-## ENV CMAKE_PREFIX_PATH=/usr/local/Qt-5
-## 
-## # Add enviroment variable so Qt5 can find it's shared libaries
-## ENV LD_LIBRARY_PATH=/usr/local/Qt-5/lib/
-## 
-## WORKDIR /root
+# CalculiX v2.16
+RUN cd /usr/local && \
+    wget http://www.dhondt.de/ccx_2.16.src.tar.bz2 && \
+    tar -xjvf ccx_2.16.src.tar.bz2 && \
+    cd /usr/local/CalculiX/ccx_2.16/src && \
+    make -j $(nproc --ignore=2)&& \
+    mv ccx_2.16 /usr/local/bin/ccx && \
+    cd /usr/local/bin && \
+    chmod a+rx ccx
+
+# VTK v8.2.0
+RUN git clone -n https://gitlab.kitware.com/vtk/vtk.git && \
+    mkdir /tmp/vtk/build && cd /tmp/vtk/build && \
+    git checkout v8.2.0 && \
+    cmake -DVTK_QT_VERSION:STRING=5 \
+    -D QT_QMAKE_EXECUTABLE:PATH=/usr/local/Qt-5.12.6/bin/qmake \
+    -D VTK_Group_Qt:BOOL=ON \
+    -D CMAKE_PREFIX_PATH:PATH=/usr/local/Qt-5/lib/cmake  \
+    -D BUILD_SHARED_LIBS:BOOL=ON \
+    .. && \
+    make -j $(nproc --ignore=2)
+
+
+# Add the build script
+ADD add_files/freecad_build_script.sh /root/build_script.sh
+
+# Note, had to add this to freecad source CMakeLists.txt:
+# add_compile_options(-fpermissive -fPIC)
+
+# # Add arc GTK theme, and add an alias so that FreeCAD uses it, to make the GUI bearable
+# # to look at.
+# RUN apt install -y arc-theme
+# RUN echo "alias FreeCAD='GTK2_RC_FILES=/usr/share/themes/Arc-Dark/gtk-2.0/gtkrc FreeCAD -style=gtk'" >> ~/.bashrc
+
+# Add enviroment varaible so CMake can find QT5
+ENV CMAKE_PREFIX_PATH=/usr/local/Qt-5
+
+# Add enviroment variable so Qt5 can find it's shared libaries
+ENV LD_LIBRARY_PATH=/usr/local/Qt-5/lib/
+
+WORKDIR /root
