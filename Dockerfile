@@ -13,11 +13,11 @@ RUN apt update && \
 # /usr/bin/python binary, which uses python 3.7, which breaks mercurial.
 RUN sed -i "s/#!\/usr\/bin\/python/#!\/usr\/bin\/python2/g" /usr/bin/hg
 
-# Python v3.7.2
+# Python v3.7.6
 RUN apt install -y zlib1g-dev libffi-dev libssl-dev && \
-    wget https://www.python.org/ftp/python/3.7.2/Python-3.7.2.tar.xz && \
-    tar -xf Python-3.7.2.tar.xz && rm Python-3.7.2.tar.xz && \
-    mkdir /tmp/Python-3.7.2/build && cd /tmp/Python-3.7.2/build && \
+    wget https://www.python.org/ftp/python/3.7.6/Python-3.7.6.tar.xz && \
+    tar -xf Python-3.7.6.tar.xz && rm Python-3.7.6.tar.xz && \
+    mkdir /tmp/Python-3.7.6/build && cd /tmp/Python-3.7.6/build && \
     CFLAGS="-fPIC" ../configure --without-pymalloc && \
 # For an unknown reason, the boost build tool (irrelevant of what flags are
 # used) will not find the correct python include directories unless the
@@ -28,14 +28,14 @@ RUN apt install -y zlib1g-dev libffi-dev libssl-dev && \
     make install -j $(nproc --ignore=2) && \
     rm -rfv /tmp/*
 
-# Ensuring Python3.7 is the default version
+# Ensuring Python3.8 is the default version
 RUN ln -sf /usr/local/bin/python3.7 /usr/bin/python && \
     ln -sf /usr/local/bin/python3.7-config /usr/local/bin/python-config
 
-# CMake v3.13.4
+# CMake v3.16.3
 RUN git clone -n https://gitlab.kitware.com/cmake/cmake.git && \
     mkdir /tmp/cmake/build && cd /tmp/cmake/build && \
-    git checkout v3.13.4 && \
+    git checkout v3.16.3 && \
 # I may want to revert to an earlier version to see if the list concatenating
 # issue encountered with Pivy remains.
     ../bootstrap --parallel=$(nproc --ignore=2) && \
@@ -43,18 +43,18 @@ RUN git clone -n https://gitlab.kitware.com/cmake/cmake.git && \
     make install -j $(nproc --ignore=2) && \
     rm -rfv /tmp/*
 
-# Boost v1.67.0
-RUN wget https://dl.bintray.com/boostorg/release/1.67.0/source/boost_1_67_0.tar.gz && \
-    tar -xzf boost_1_67_0.tar.gz && rm boost_1_67_0.tar.gz && \
-    cd  /tmp/boost_1_67_0 && \
-    ./bootstrap.sh --with-python=/usr/local/bin/python3.7 \
-    --with-python-root=/usr/local/include/python3.7 && \
+# Boost v1.72.0
+RUN wget https://dl.bintray.com/boostorg/release/1.72.0/source/boost_1_72_0.tar.gz && \
+    tar -xzf boost_1_72_0.tar.gz && rm boost_1_72_0.tar.gz && \
+    cd  /tmp/boost_1_72_0 && \
+    ./bootstrap.sh --with-python=/usr/local/bin/python3.8 \
+    --with-python-root=/usr/local/include/python3.8 && \
     ./b2 -j$(nproc --ignore=2) && \
     ./b2 -j$(nproc --ignore=2) install && \
     rm -rfv /tmp/*
 
 # Link libboost_python, so it can be found without it's python version
-RUN ln -s /usr/local/lib/libboost_python37.so.1.67.0 /usr/local/lib/libboost_python.so  
+RUN ln -s /usr/local/lib/libboost_python37.so.1.72.0 /usr/local/lib/libboost_python.so  
 
 # Infrequently used languages
 RUN apt install -y perl ruby
@@ -76,8 +76,8 @@ RUN apt install -y libatspi2.0-dev libdbus-1-dev flex gperf libicu-dev \
     libfontconfig1-dev libx11-dev libxext-dev libxfixes-dev libxcb1-dev \
     libxkbcommon-dev
 
-# QT5 v5.12.6
-RUN QT_VER=5.12.6 && \
+# QT5 v5.13.2
+RUN QT_VER=5.13.2 && \
     git clone -n git://code.qt.io/qt/qt5.git && \
     cd /tmp/qt5 && git checkout $QT_VER && \
     perl init-repository --module-subset=default,-qtpurchasing,\
@@ -90,11 +90,11 @@ RUN QT_VER=5.12.6 && \
     ln -v -s /usr/local/Qt-$QT_VER /usr/local/Qt-5
 ENV PATH="/usr/local/Qt-5/bin:${PATH}"
 
-# QT Wayland v5.12
+# QT Wayland v5.14.0
 RUN apt install -y libwayland-dev libwayland-egl1-mesa libwayland-server0 \
     libgles2-mesa-dev libxkbcommon-dev && \
     git clone -n git://code.qt.io/qt/qtwayland.git && \
-    cd qtwayland && git checkout 5.12 &&\
+    cd qtwayland && git checkout v5.13.2 &&\
     qmake && \
     make -j $(nproc --ignore=2) && \
     make -j $(nproc --ignore=2) install && \
@@ -113,9 +113,9 @@ RUN apt install -y libsqlite3-dev libjpeg-dev libwebp-dev libxcomposite-dev && \
     make -j $(nproc --ignore=2) install && \
     rm -rfv /tmp/*
 
-# Clang v7.0.1
+# Clang v9.0.1
 RUN git clone -n https://github.com/llvm/llvm-project.git && \
-    cd /tmp/llvm-project && git checkout llvmorg-7.0.1 && \
+    cd /tmp/llvm-project && git checkout llvmorg-9.0.1 && \
     mkdir /tmp/llvm-project/build && cd /tmp/llvm-project/build && \
     cmake -DLLVM_ENABLE_PROJECTS=clang -G "Unix Makefiles" \
     -DCMAKE_BUILD_TYPE=Release ../llvm && \
@@ -141,10 +141,10 @@ RUN wget https://prdownloads.sourceforge.net/tcl/tk8.7a1-src.tar.gz && \
     make -j $(nproc --ignore=2) install && \
     rm -rfv /tmp/*
 
-# Open Cascade v7.3
+# Open Cascade v7.4
 RUN apt install -y libxt-dev libxmu-dev libxi-dev libgl1-mesa-dev \
     libglu1-mesa-dev libfreeimage-dev libtbb-dev && \
-    wget "http://git.dev.opencascade.org/gitweb/?p=occt.git;a=snapshot;h=42da0d5115bff683c6b596e66cdeaff957f81e7d;sf=tgz" -O occt.tar.gz && \
+    wget "http://git.dev.opencascade.org/gitweb/?p=occt.git;a=snapshot;h=fd47711d682be943f0e0a13d1fb54911b0499c31;sf=tgz" -O occt.tar.gz && \
     mkdir /tmp/occt && \
     tar -xzf occt.tar.gz -C /tmp/occt --strip-components 1 && \
     mkdir /tmp/occt/build && cd /tmp/occt/build && \
@@ -153,65 +153,47 @@ RUN apt install -y libxt-dev libxmu-dev libxi-dev libgl1-mesa-dev \
     make -j $(nproc --ignore=2) install && \
     rm -rfv /tmp/*
 
-# Gmsh v4.1.4
-RUN wget gmsh.info/src/gmsh-4.1.4-source.tgz && \
-    tar -xzf gmsh-4.1.4-source.tgz && rm gmsh-4.1.4-source.tgz && \
-    mkdir /tmp/gmsh-4.1.4-source/build && cd /tmp/gmsh-4.1.4-source/build && \
+# Gmsh v4.5.1
+RUN wget gmsh.info/src/gmsh-4.5.1-source.tgz && \
+    tar -xzf gmsh-4.5.1-source.tgz && rm gmsh-4.5.1-source.tgz && \
+    mkdir /tmp/gmsh-4.5.1-source/build && cd /tmp/gmsh-4.5.1-source/build && \
     cmake .. && \
     make -j $(nproc --ignore=2) && \
     make -j $(nproc --ignore=2) install && \
     rm -rfv /tmp/*
 
-# Coin 3D v3.1.3
-RUN hg clone https://bitbucket.org/Coin3D/coin && \
-    cd /tmp/coin && hg checkout 40877d4 && \
+# Coin 3D v2020/1/25
+RUN git clone -n https://github.com/coin3d/coin.git && \
+    cd /tmp/coin && git checkout 381b9acb29243d7e381106dbebb98f11681c10e5 && \
     mkdir /tmp/coin/build_tmp && cd /tmp/coin/build_tmp && \
     cmake .. && \
     make -j $(nproc --ignore=2) && \
     make -j $(nproc --ignore=2) install && \
     rm -rfv /tmp/*
 
-# HDF5 v1.8.21
-ENV hdf5_path=/usr/local/hdf5
-RUN wget https://support.hdfgroup.org/ftp/HDF5/releases/hdf5-1.8/hdf5-1.8.21/src/hdf5-1.8.21.tar.gz && \
-    tar -xzf hdf5-1.8.21.tar.gz && rm hdf5-1.8.21.tar.gz && \
-    mkdir /tmp/hdf5-1.8.21/build && cd /tmp/hdf5-1.8.21/build && \
-    ../configure --prefix=$hdf5_path && \
-    make -j $(nproc --ignore=2) && make -j $(nproc --ignore=2) install && \
-    rm -rfv /tmp/*
-
-# Libmed v3.0.6-11 (AKA: MED-fichier/Modelisation and Data Exchange)
-RUN wget https://salsa.debian.org/science-team/med-fichier/-/archive/debian/3.0.6-11/med-fichier-debian-3.0.6-11.tar.gz && \
-    tar -xzf med-fichier-debian-3.0.6-11.tar.gz && \
-    rm med-fichier-debian-3.0.6-11.tar.gz && \
-    mkdir /tmp/med-fichier-debian-3.0.6-11/build && \
-    cd /tmp/med-fichier-debian-3.0.6-11/build && \
-    ../configure --with-hdf5=$hdf5_path && \
-    make -j $(nproc --ignore=2) && make -j $(nproc --ignore=2) install && \
-    rm -rfv /tmp/*
-
-# Swig v3.0.12
+# Swig v4.0.1
 RUN apt install -y libpcre3-dev && \
-    wget https://astuteinternet.dl.sourceforge.net/project/swig/swig/swig-3.0.12/swig-3.0.12.tar.gz && \
-    tar -xzf swig-3.0.12.tar.gz && rm swig-3.0.12.tar.gz && \
-    cd /tmp/swig-3.0.12 && \
+    wget https://cfhcable.dl.sourceforge.net/project/swig/swig/swig-4.0.1/swig-4.0.1.tar.gz && \
+    tar -xzf swig-4.0.1.tar.gz && rm swig-4.0.1.tar.gz && \
+    cd /tmp/swig-4.0.1 && \
     ./configure && \
     make -j $(nproc --ignore=2) && \
     make -j $(nproc --ignore=2) install && \
     rm -rfv /tmp/*
 
 # SOQT v1.5.0
-RUN hg clone https://bitbucket.org/Coin3D/soqt && \
-    cd /tmp/soqt && hg checkout 423d44b && \
+RUN git clone -n https://github.com/coin3d/soqt.git && \
+    cd /tmp/soqt && git checkout 2d0e3ed22f942d51380e1f8e67289b9eb6732f67 && \
+    git submodule update --init --recursive && \
     mkdir /tmp/soqt/build_tmp && cd /tmp/soqt/build_tmp && \
     cmake -DCMAKE_PREFIX_PATH=/usr/local/Qt-5 .. && \
     make -j $(nproc --ignore=2) && make -j $(nproc --ignore=2) install && \
     rm -rfv /tmp/*
 
-# Pivy v0.6.4
+# Pivy v0.6.5
 RUN apt install -y gcc-multilib g++-multilib && \
-    hg clone https://bitbucket.org/Coin3D/pivy && \
-    cd /tmp/pivy && hg checkout 0.6.4 && \
+    git clone -n https://github.com/coin3d/pivy.git && \
+    cd /tmp/pivy && git checkout 0.6.5 && \
     rm setup.py
 ADD add_files/pivy_setup.py /tmp/pivy/setup.py
 RUN cd /tmp/pivy && \
@@ -251,9 +233,10 @@ RUN cd /tmp/pivy && \
 #                 coin_marker = PyUnicode_AsUTF8(string);
 #                               ~~~~~~~~~~~~~~~~^~~~~~~~
 
-# simage v1.7.0+
-RUN hg clone https://bitbucket.org/Coin3D/simage && \
-    cd /tmp/simage && hg checkout 2a7542b && \
+# simage v1.8.0
+RUN git clone -n https://github.com/coin3d/simage.git && \
+    cd /tmp/simage && git checkout simage-1.8.0 && \
+    git submodule update --init --recursive && \   
     mkdir /tmp/simage/tmp_build && cd /tmp/simage/tmp_build && \
     ../configure && \
     make -j $(nproc --ignore=2) && \
@@ -261,8 +244,8 @@ RUN hg clone https://bitbucket.org/Coin3D/simage && \
     rm -rfv /tmp/*
 
 # Eigen v3.3.7
-RUN hg clone https://bitbucket.org/eigen/eigen/ && \
-    cd /tmp/eigen && hg checkout 3.3.7 && \
+RUN git clone -n https://gitlab.com/libeigen/eigen.git && \
+    cd /tmp/eigen && git checkout 3.3.7 && \
     mkdir /tmp/eigen/build && cd /tmp/eigen/build && \
     cmake .. && \
     make -j $(nproc --ignore=2) install && \
@@ -286,28 +269,30 @@ RUN wget https://www-eu.apache.org/dist//xerces/c/3/sources/xerces-c-3.2.2.tar.g
     make -j $(nproc --ignore=2) install && \
     rm -rfv /tmp/*
 
-# Pyside2 and shiboken2 v2-5.12
+# Pyside2 and shiboken2 v5.13.2
 RUN git clone -n https://code.qt.io/pyside/pyside-setup && \
-    cd /tmp/pyside-setup && git checkout 5.12 && \
+    cd /tmp/pyside-setup && git checkout v5.13.2 && \
     git submodule update --init --recursive --progress && \
     python setup.py install --cmake=/usr/local/bin/cmake \
     --qmake=/usr/local/Qt-5/bin/qmake --ignore-git \
     --parallel=$(nproc --ignore=2) && \
     rm -rfv /tmp/*
 
-# IFC Open Shell v0.6.0a1
+# IFC Open Shell v0.6.0b0
 RUN git clone -n https://github.com/IfcOpenShell/IfcOpenShell.git && \
-    cd /tmp/IfcOpenShell && git checkout v0.6.0a1 && \
+    cd /tmp/IfcOpenShell && git checkout v0.6.0b0 && \
     mkdir /tmp/IfcOpenShell/build && cd /tmp/IfcOpenShell/build && \
-    cmake ../cmake -DCOLLADA_SUPPORT=0 \
-    -DOCC_INCLUDE_DIR=/usr/local/include/opencascade \
-    -DOCC_LIBRARY_DIR=/usr/local/lib && \
+    cmake ../cmake -D COLLADA_SUPPORT=0 \
+    -D OCC_INCLUDE_DIR=/usr/local/include/opencascade \
+    -D OCC_LIBRARY_DIR=/usr/local/lib \
+    -D LIBXML2_LIBRARIES=/usr/lib/x86_64-linux-gnu/libxml2.so \
+    -D LIBXML2_INCLUDE_DIR=/usr/include/libxml2 && \
     make -j $(nproc --ignore=2) && \
     make -j $(nproc --ignore=2) install && \
     rm -rfv /tmp/*
 
 # Numpy v1.16.2 and Matplotlib v3.0.3
-RUN python -m pip install numpy==1.16.2 matplotlib==3.0.3
+RUN python -m pip install cython==0.29.14 && python -m pip install numpy==1.18.1 matplotlib==3.1.2
 
 # SPOOLES v2.2
 RUN mkdir spooles && cd spooles && \
@@ -317,8 +302,6 @@ RUN mkdir spooles && cd spooles && \
     mkdir /usr/local/SPOOLES.2.2 && \
     mv * /usr/local/SPOOLES.2.2 && \
     rm -rfv /tmp/*
-    # Note: Spooles can be made as "make lib", "make drivers", or "make global". It is not immediately clear
-    # which one should be used.
 
 # ARpack v96
 RUN mkdir arpack && cd arpack && \
@@ -353,8 +336,37 @@ RUN git clone -n https://gitlab.kitware.com/vtk/vtk.git && \
     -D CMAKE_PREFIX_PATH:PATH=/usr/local/Qt-5/lib/cmake  \
     -D BUILD_SHARED_LIBS:BOOL=ON \
     .. && \
-    make -j $(nproc --ignore=2)
+    make -j $(nproc --ignore=2) && \
+    make -j $(nproc --ignore=2) install && \
+    rm -rfv /tmp/*
 
+# HDF5 v1.10.6 (CMake version)
+ENV hdf5_path=/usr/local/hdf5
+RUN wget https://hdf-wordpress-1.s3.amazonaws.com/wp-content/uploads/manual/HDF5/HDF5_1_10_6/source/CMake-hdf5-1.10.6.tar.gz && \
+    tar -xzf CMake-hdf5-1.10.6.tar.gz && \
+    cd CMake-hdf5-1.10.6 && \
+    ./build-unix.sh && \
+    ./HDF5-1.10.6-Linux.sh --exclude-subdir --skip-license && \
+    mkdir $hdf5_path && \
+    mv HDF_Group/HDF5/1.10.6/* $hdf5_path && \
+    export PATH=$PATH:$hdf5_path && \
+    echo "$hdf5_path/lib" > /etc/ld.so.conf.d/hdf5.conf && \
+    ldconfig && \
+    rm -rfv /tmp/*
+ENV PATH=$PATH:$hdf5_path
+
+# Libmed v3.0.6-11 (AKA: MED-fichier/Modelisation and Data Exchange)
+RUN wget https://salsa.debian.org/science-team/med-fichier/-/archive/debian/4.0.0+repack-9/med-fichier-debian-4.0.0+repack-9.tar.gz && \
+    tar -xzf med-fichier-debian-4.0.0+repack-9.tar.gz && \
+    rm med-fichier-debian-4.0.0+repack-9.tar.gz && \
+    mkdir /tmp/med-fichier-debian-4.0.0+repack-9/build && \
+    cd /tmp/med-fichier-debian-4.0.0+repack-9/build && \
+    cmake .. && \
+    make -j $(nproc --ignore=2) && make -j $(nproc --ignore=2) install && \
+    rm -rfv /tmp/*
+
+    # HDF5's root has to be on the path for it to be detected.
+    # Add HDF5's lib dir path to /etc/ld.so.conf, and run ldconfig
 
 # Add the build script
 ADD add_files/freecad_build_script.sh /root/build_script.sh
@@ -372,5 +384,6 @@ ENV CMAKE_PREFIX_PATH=/usr/local/Qt-5
 
 # Add enviroment variable so Qt5 can find it's shared libaries
 ENV LD_LIBRARY_PATH=/usr/local/Qt-5/lib/
+# Note: May be worthwhile to replace this by adding it to /etc/ld.so.conf
 
 WORKDIR /root
