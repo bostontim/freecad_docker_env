@@ -19,11 +19,11 @@ RUN apt install -y zlib1g-dev libffi-dev libssl-dev && \
     tar -xf Python-3.7.6.tar.xz && rm Python-3.7.6.tar.xz && \
     mkdir /tmp/Python-3.7.6/build && cd /tmp/Python-3.7.6/build && \
     CFLAGS="-fPIC" ../configure --without-pymalloc && \
-# For an unknown reason, the boost build tool (irrelevant of what flags are
-# used) will not find the correct python include directories unless the
-# .../include/python3.7m dir is linked to the .../include/python3.7 dir. Note
-# that here, the m on the end, represents that the python was built with
-# malloc. For that reason, I'm building python without malloc.
+    # For an unknown reason, the boost build tool (irrelevant of what flags are
+    # used) will not find the correct python include directories unless the
+    # .../include/python3.7m dir is linked to the .../include/python3.7 dir. Note
+    # that here, the m on the end, represents that the python was built with
+    # malloc. For that reason, I'm building python without malloc.
     make -j $(nproc --ignore=2) && \
     make install -j $(nproc --ignore=2) && \
     rm -rfv /tmp/*
@@ -276,6 +276,13 @@ RUN git clone -n https://code.qt.io/pyside/pyside-setup && \
     python setup.py install --cmake=/usr/local/bin/cmake \
     --qmake=/usr/local/Qt-5/bin/qmake --ignore-git \
     --parallel=$(nproc --ignore=2) && \
+    # Create links to make it easier to point Freecad's CMAKE script to the
+    # shared libraries.
+    cd /usr/local/lib/python3.7/site-packages && \
+    ln -s libshiboken2.cpython-37-x86_64-linux-gnu.so.5.13 \
+    shiboken2/libshiboken2.cpython-37-x86_64-linux-gnu.so.5 && \
+    ln -s libpyside2.cpython-37-x86_64-linux-gnu.so.5.13 \
+    PySide2/libpyside2.cpython-37-x86_64-linux-gnu.so.5 && \
     rm -rfv /tmp/*
 
 # IFC Open Shell v0.6.0b0
@@ -352,7 +359,15 @@ RUN wget https://hdf-wordpress-1.s3.amazonaws.com/wp-content/uploads/manual/HDF5
     export PATH=$PATH:$hdf5_path && \
     echo "$hdf5_path/lib" > /etc/ld.so.conf.d/hdf5.conf && \
     ldconfig && \
-    rm -rfv /tmp/*
+    # Because HDF5's libz.so does not have version information, link to use
+    # package installed version.
+    rm /usr/local/hdf5/lib/libz.so* && \
+    ln -s /usr/lib/x86_64-linux-gnu/libz.so /usr/local/hdf5/lib/libz.so && \
+    ln -s /usr/lib/x86_64-linux-gnu/libz.so /usr/local/hdf5/lib/libz.so.1 && \
+    ln -s /usr/lib/x86_64-linux-gnu/libz.so /usr/local/hdf5/lib/libz.so.1.2.11 && \
+    rm -rfv /tmp/* 
+
+# HDF5's root has to be on the path for it to be detected.
 ENV PATH=$PATH:$hdf5_path
 
 # Libmed v3.0.6-11 (AKA: MED-fichier/Modelisation and Data Exchange)
@@ -365,25 +380,14 @@ RUN wget https://salsa.debian.org/science-team/med-fichier/-/archive/debian/4.0.
     make -j $(nproc --ignore=2) && make -j $(nproc --ignore=2) install && \
     rm -rfv /tmp/*
 
-    # HDF5's root has to be on the path for it to be detected.
-    # Add HDF5's lib dir path to /etc/ld.so.conf, and run ldconfig
-
 # Add the build script
 ADD add_files/freecad_build_script.sh /root/build_script.sh
-
-# Note, had to add this to freecad source CMakeLists.txt:
-# add_compile_options(-fpermissive -fPIC)
-
-# # Add arc GTK theme, and add an alias so that FreeCAD uses it, to make the GUI bearable
-# # to look at.
-# RUN apt install -y arc-theme
-# RUN echo "alias FreeCAD='GTK2_RC_FILES=/usr/share/themes/Arc-Dark/gtk-2.0/gtkrc FreeCAD -style=gtk'" >> ~/.bashrc
 
 # Add enviroment varaible so CMake can find QT5
 ENV CMAKE_PREFIX_PATH=/usr/local/Qt-5
 
-# Add enviroment variable so Qt5 can find it's shared libaries
-ENV LD_LIBRARY_PATH=/usr/local/Qt-5/lib/
-# Note: May be worthwhile to replace this by adding it to /etc/ld.so.conf
+# So Qt5 can find it's shared libaries
+RUN echo "/usr/local/Qt-5/lib" > /etc/ld.so.conf.d/qt5.conf && \
+    ldconfig
 
 WORKDIR /root

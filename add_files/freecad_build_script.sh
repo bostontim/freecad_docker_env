@@ -11,10 +11,10 @@ cmake -j$(nproc) \
     -D PYTHON_EXECUTABLE=/usr/local/bin/python3 \
     -D SHIBOKEN_INCLUDE_DIR=/usr/local/lib/python3.7/site-packages/shiboken2_generator/include \
     -D SHIBOKEN_LIBRARY=/usr/local/lib/python3.7/\
-site-packages/shiboken2/libshiboken2.cpython-37-x86_64-linux-gnu.so.5.12 \
+site-packages/shiboken2/libshiboken2.cpython-37-x86_64-linux-gnu.so.5 \
     -D PYSIDE_INCLUDE_DIR=/usr/local/lib/python3.7/site-packages/PySide2/include \
     -D PYSIDE_LIBRARY=/usr/local/lib/python3.7/site-packages\
-/PySide2/libpyside2.cpython-37-x86_64-linux-gnu.so.5.12 \
+/PySide2/libpyside2.cpython-37-x86_64-linux-gnu.so.5 \
     -D PYSIDE2RCCBINARY=/usr/local/lib/python3.7/site-packages/PySide2/pyside2-rcc \
     -S /mnt/source \
     -B /mnt/build
@@ -22,6 +22,3 @@ site-packages/shiboken2/libshiboken2.cpython-37-x86_64-linux-gnu.so.5.12 \
 cd /mnt/build
 
 make -j $(nproc)
-
-# Note, had to add this to freecad source CMakeLists.txt:
-# add_compile_options(-fpermissive -fPIC)
