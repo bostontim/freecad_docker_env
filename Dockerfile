@@ -7,37 +7,33 @@ WORKDIR /tmp
 # Build tools, and misc supporting tools
 RUN apt update && \
     apt install -y build-essential gfortran automake bison flex libtool git \
-    mercurial wget unzip doxygen
-
-# Configure mercurial to use python 2.7 binary, instead of the standard
-# /usr/bin/python binary, which uses python 3.7, which breaks mercurial.
-RUN sed -i "s/#!\/usr\/bin\/python/#!\/usr\/bin\/python2/g" /usr/bin/hg
+    wget unzip doxygen
 
 # Python v3.7.6
 RUN apt install -y zlib1g-dev libffi-dev libssl-dev && \
     wget https://www.python.org/ftp/python/3.7.6/Python-3.7.6.tar.xz && \
     tar -xf Python-3.7.6.tar.xz && rm Python-3.7.6.tar.xz && \
     mkdir /tmp/Python-3.7.6/build && cd /tmp/Python-3.7.6/build && \
-    CFLAGS="-fPIC" ../configure --without-pymalloc && \
-    # For an unknown reason, the boost build tool (irrelevant of what flags are
-    # used) will not find the correct python include directories unless the
-    # .../include/python3.7m dir is linked to the .../include/python3.7 dir. Note
-    # that here, the m on the end, represents that the python was built with
-    # malloc. For that reason, I'm building python without malloc.
+    ../configure --enable-shared \ 
+    --enable-unicode=ucs4 --enable-ipv6 && \
     make -j $(nproc --ignore=2) && \
     make install -j $(nproc --ignore=2) && \
+    ldconfig && \
     rm -rfv /tmp/*
 
-# Ensuring Python3.8 is the default version
+# Ensuring Python3.7 is the default version
 RUN ln -sf /usr/local/bin/python3.7 /usr/bin/python && \
-    ln -sf /usr/local/bin/python3.7-config /usr/local/bin/python-config
+    ln -sf /usr/local/bin/python3.7-config /usr/local/bin/python-config && \
+    # Ensuring python is found, even when program is not looking for "m" suffix
+    ln -s python3.7m /usr/local/include/python3.7 && \
+    ln -s libpython3.7m.a /usr/local/lib/python3.7/config-3.7m-x86_64-linux-gnu/libpython3.7.a
 
 # CMake v3.16.3
-RUN git clone -n https://gitlab.kitware.com/cmake/cmake.git && \
+RUN git clone  --verbose -n https://gitlab.kitware.com/cmake/cmake.git && \
     mkdir /tmp/cmake/build && cd /tmp/cmake/build && \
     git checkout v3.16.3 && \
-# I may want to revert to an earlier version to see if the list concatenating
-# issue encountered with Pivy remains.
+    # I may want to revert to an earlier version to see if the list concatenating
+    # issue encountered with Pivy remains.
     ../bootstrap --parallel=$(nproc --ignore=2) && \
     make -j $(nproc --ignore=2) && \
     make install -j $(nproc --ignore=2) && \
@@ -46,12 +42,12 @@ RUN git clone -n https://gitlab.kitware.com/cmake/cmake.git && \
 # Boost v1.72.0
 RUN wget https://dl.bintray.com/boostorg/release/1.72.0/source/boost_1_72_0.tar.gz && \
     tar -xzf boost_1_72_0.tar.gz && rm boost_1_72_0.tar.gz && \
-    cd  /tmp/boost_1_72_0 && \
-    ./bootstrap.sh --with-python=/usr/local/bin/python3.8 \
-    --with-python-root=/usr/local/include/python3.8 && \
+    cd /tmp/boost_1_72_0 && \
+    ./bootstrap.sh --with-python=/usr/local/bin/python3 \
+    --with-python-root=/usr/local --with-python-version=3.7 && \
     ./b2 -j$(nproc --ignore=2) && \
     ./b2 -j$(nproc --ignore=2) install && \
-    rm -rfv /tmp/*
+    rm -rf /tmp/*
 
 # Link libboost_python, so it can be found without it's python version
 RUN ln -s /usr/local/lib/libboost_python37.so.1.72.0 /usr/local/lib/libboost_python.so  
@@ -101,14 +97,12 @@ RUN apt install -y libwayland-dev libwayland-egl1-mesa libwayland-server0 \
     rm -rfv /tmp/*
 
 # QT WebKit v5.212
-RUN apt install -y libsqlite3-dev libjpeg-dev libwebp-dev libxcomposite-dev && \
+RUN apt install -y libsqlite3-dev libhyphen-dev libjpeg-dev libwebp-dev \
+    libxcomposite-dev python2.7 && \
     git clone -n https://code.qt.io/qt/qtwebkit.git && \
     cd /tmp/qtwebkit && git checkout 5.212 && \
-    # Disable the all-in-one buuld, because it causes GCC to hang indefinitely
-    # (as far as I could tell).  Also, it appears to only be needed for the
-    # Windows build.
-    sed -i '1s/^/set(ENABLE_ALLINONE_BUILD OFF)\n/' /tmp/qtwebkit/Source/WebCore/CMakeLists.txt && \
-    qmake && \
+    mkdir /tmp/qtwebkit/build && cd build && \
+    cmake -D PORT=Qt -D CMAKE_BUILD_TYPE=Release -D ENABLE_ALLINONE_BUILD=OFF .. && \
     make -j $(nproc --ignore=2) && \
     make -j $(nproc --ignore=2) install && \
     rm -rfv /tmp/*
@@ -254,7 +248,7 @@ RUN git clone -n https://gitlab.com/libeigen/eigen.git && \
 # LibArea v12/7/2015
 RUN git clone -n https://github.com/danielfalck/libarea.git && \
     cd /tmp/libarea && git checkout 51e6778 && \
-    mkdir /tmp/libarea/build && cd /tmp/libarea/build && \ 
+    mkdir /tmp/libarea/build && cd /tmp/libarea/build && \
     cmake .. && \
     make -j $(nproc --ignore=2) && \
     make -j $(nproc --ignore=2) install && \
@@ -279,10 +273,10 @@ RUN git clone -n https://code.qt.io/pyside/pyside-setup && \
     # Create links to make it easier to point Freecad's CMAKE script to the
     # shared libraries.
     cd /usr/local/lib/python3.7/site-packages && \
-    ln -s libshiboken2.cpython-37-x86_64-linux-gnu.so.5.13 \
-    shiboken2/libshiboken2.cpython-37-x86_64-linux-gnu.so.5 && \
-    ln -s libpyside2.cpython-37-x86_64-linux-gnu.so.5.13 \
-    PySide2/libpyside2.cpython-37-x86_64-linux-gnu.so.5 && \
+    ln -s libshiboken2.cpython-37m-x86_64-linux-gnu.so.5.13 \
+    shiboken2/libshiboken2.cpython-37m-x86_64-linux-gnu.so.5 && \
+    ln -s libpyside2.cpython-37m-x86_64-linux-gnu.so.5.13 \
+    PySide2/libpyside2.cpython-37m-x86_64-linux-gnu.so.5 && \
     rm -rfv /tmp/*
 
 # IFC Open Shell v0.6.0b0
@@ -391,3 +385,5 @@ RUN echo "/usr/local/Qt-5/lib" > /etc/ld.so.conf.d/qt5.conf && \
     ldconfig
 
 WORKDIR /root
+
+# Note for later: May need -fPIC

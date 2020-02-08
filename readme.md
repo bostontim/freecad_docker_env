@@ -80,6 +80,9 @@ running `docker system prune`.
 
 ## Pushing the docker image
 
+Prior to pushing, the image must be able to reliabily build the most recent
+tags of the FreeCAD source code: `master`, `0.19_pre`, and `0.18.4`.
+
 ```
 docker login registry.gitlab.com
 docker push registry.gitlab.com/daviddaish/freecad_docker_env:updates
