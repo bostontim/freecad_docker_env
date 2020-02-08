@@ -56,7 +56,7 @@ RUN ln -s /usr/local/lib/libboost_python37.so.1.72.0 /usr/local/lib/libboost_pyt
 RUN apt install -y perl ruby
 
 # Freetype v 2.9.1
-RUN wget https://download.savannah.gnu.org/releases/freetype/freetype-2.9.1.tar.gz && \
+RUN wget http://mirror.downloadvn.com/nongnu/freetype/freetype-2.9.1.tar.gz && \
     tar -xzf freetype-2.9.1.tar.gz && rm freetype-2.9.1.tar.gz && \
     cd  /tmp/freetype-2.9.1 && \
     make -j $(nproc --ignore=2) && \
