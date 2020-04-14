@@ -17,11 +17,10 @@ docker pull registry.gitlab.com/daviddaish/freecad_docker_env:latest
 
 ## Run image
 
-Allow xhost access, so you can use the GUI. Note that this method is easy, [but
-insecure](https://wiki.ros.org/docker/Tutorials/GUI).
+Allow local xhost access, so you can use the GUI.
 
 ```
-xhost +
+xhost +local:
 ```
 
 Using enviroment variables, specify:
