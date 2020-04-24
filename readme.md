@@ -17,11 +17,22 @@ docker pull registry.gitlab.com/daviddaish/freecad_docker_env:latest
 
 ## Run image
 
+---
+**For mac users:**
+In order to use the GUI, you must install [XQuartz](https://www.xquartz.org/).
+
+Then, open XQuartz with `open -a XQuartz`, and ensure "Allow connections from
+within network clients" is ticked, under the "Security" tab. This process was
+taken from this [blogpost]
+(https://sourabhbajaj.com/blog/2017/02/07/gui-applications-docker-mac/).
+---
+
 Allow local xhost access, so you can use the GUI.
 
 ```
 xhost +local:
 ```
+
 
 Using enviroment variables, specify:
 
