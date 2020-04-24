@@ -254,10 +254,10 @@ RUN git clone -n https://github.com/danielfalck/libarea.git && \
     make -j $(nproc --ignore=2) install && \
     rm -rfv /tmp/*
 
-# Xerces C++ v3.2.2
-RUN wget https://www-eu.apache.org/dist//xerces/c/3/sources/xerces-c-3.2.2.tar.gz && \
-    tar -xzf xerces-c-3.2.2.tar.gz && rm xerces-c-3.2.2.tar.gz && \
-    mkdir /tmp/xerces-c-3.2.2/build && cd /tmp/xerces-c-3.2.2/build && \
+# Xerces C++ v3.2.3
+RUN wget https://downloads.apache.org//xerces/c/3/sources/xerces-c-3.2.3.tar.gz && \
+    tar -xzf xerces-c-3.2.3.tar.gz && rm xerces-c-3.2.3.tar.gz && \
+    mkdir /tmp/xerces-c-3.2.3/build && cd /tmp/xerces-c-3.2.3/build && \
     cmake .. && \
     make -j $(nproc --ignore=2) && \
     make -j $(nproc --ignore=2) install && \
@@ -381,6 +381,9 @@ RUN git clone -n https://github.com/aewallin/opencamlib.git && \
     cmake -D BUILD_PY_LIB=ON -D BUILD_CXX_LIB=OFF -D USE_PY_3=ON ../src && \
     make -j $(nproc --ignore=2) && \
     make -j $(nproc --ignore=2) install
+
+# Ply v3.11 and PyYAML v5.3.1
+RUN python -m pip install ply==3.11 PyYAML==5.3.1
 
 # Add the build script
 ADD add_files/freecad_build_script.sh /root/build_script.sh
