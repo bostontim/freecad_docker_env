@@ -378,7 +378,8 @@ RUN wget https://salsa.debian.org/science-team/med-fichier/-/archive/debian/4.0.
 RUN git clone -n https://github.com/aewallin/opencamlib.git && \
     mkdir /tmp/opencamlib/build && cd /tmp/opencamlib/build && \
     git checkout 983a4168fb0a8e84154c45c6f0a286dc2e752b9a && \
-    cmake -D BUILD_PY_LIB=ON -D BUILD_CXX_LIB=OFF -D USE_PY_3=ON ../src && \
+    cmake -D BUILD_PY_LIB=ON -D BUILD_CXX_LIB=OFF -D USE_PY_3=ON USE_OPENMP=ON \
+    ../src && \
     make -j $(nproc --ignore=2) && \
     make -j $(nproc --ignore=2) install
 
